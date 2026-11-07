@@ -9,20 +9,31 @@ import android.view.*;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.inputmethod.*;
 import android.widget.*;
+import java.lang.ref.WeakReference;
 import java.util.*;
 
 /** Only inspects foreground package names; never requests screen content. */
 public class FocusAccessibilityService extends AccessibilityService {
-  static volatile FocusAccessibilityService instance;
+  private static volatile WeakReference<FocusAccessibilityService> connectedService =
+      new WeakReference<>(null);
   private WindowManager manager;
   private View shield;
   private TextView remaining;
   private final Set<String> keyboards = new HashSet<>();
   private String lastPackage = "";
 
+  static FocusAccessibilityService getConnected() {
+    return connectedService.get();
+  }
+
+  private void clearConnected() {
+    WeakReference<FocusAccessibilityService> connection = connectedService;
+    if (connection.get() == this) connection.clear();
+  }
+
   @Override
   protected void onServiceConnected() {
-    instance = this;
+    connectedService = new WeakReference<>(this);
     manager = getSystemService(WindowManager.class);
     InputMethodManager im = getSystemService(InputMethodManager.class);
     for (InputMethodInfo input : im.getEnabledInputMethodList())
@@ -82,6 +93,7 @@ public class FocusAccessibilityService extends AccessibilityService {
     root.addView(eyebrow);
     Ui.gap(root, 18);
     TextView title = Ui.text(this, "A moment away.\nA little more life.", 32, Ui.WHITE);
+    Ui.heading(title);
     title.setGravity(Gravity.CENTER);
     root.addView(title);
     Ui.gap(root, 32);
@@ -118,6 +130,7 @@ public class FocusAccessibilityService extends AccessibilityService {
         name.setEllipsize(android.text.TextUtils.TruncateAt.END);
         item.addView(name, Ui.width(68, 22, this));
         item.setContentDescription("Open " + info.loadLabel(getPackageManager()));
+        Ui.action(item, item.getContentDescription().toString());
         item.setOnClickListener(
             v -> {
               hideShield();
@@ -150,11 +163,12 @@ public class FocusAccessibilityService extends AccessibilityService {
                   new Intent(this, MainActivity.class)
                       .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP));
             }),
-        Ui.width(-1, 58, this));
+        Ui.width(-1, -2, this));
     Ui.gap(root, 12);
     TextView emergency = Ui.text(this, "Phone & emergency calls", 13, Ui.MUTED);
     emergency.setGravity(Gravity.CENTER);
     emergency.setMinHeight(Ui.dp(this, 48));
+    Ui.action(emergency, "Phone and emergency calls");
     emergency.setOnClickListener(
         v -> {
           Intent dial =
@@ -211,7 +225,7 @@ public class FocusAccessibilityService extends AccessibilityService {
   @Override
   public boolean onUnbind(Intent intent) {
     hideShield();
-    instance = null;
+    clearConnected();
     Store.changed(this);
     return super.onUnbind(intent);
   }
@@ -219,7 +233,7 @@ public class FocusAccessibilityService extends AccessibilityService {
   @Override
   public void onDestroy() {
     hideShield();
-    instance = null;
+    clearConnected();
     super.onDestroy();
   }
 }

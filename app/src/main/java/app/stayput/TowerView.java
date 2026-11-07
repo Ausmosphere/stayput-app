@@ -8,11 +8,20 @@ public class TowerView extends View {
   final Paint p = new Paint(3);
   final int floors;
 
+  public TowerView(Context c) {
+    this(c, 0);
+  }
+
   public TowerView(Context c, int floors) {
     super(c);
     this.floors = floors;
     setLayerType(LAYER_TYPE_SOFTWARE, null);
     setContentDescription(floors + " floors in your focus tower");
+  }
+
+  @Override
+  public CharSequence getAccessibilityClassName() {
+    return android.widget.ImageView.class.getName();
   }
 
   void polygon(Canvas c, int color, float... points) {

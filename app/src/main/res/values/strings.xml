@@ -1,3 +1,14 @@
 <resources>
+    <string name="extend_hold">Hold 3 seconds to add 15 min</string>
+    <string name="extend_holding">Keep holding…</string>
+    <string name="extend_added">15 minutes added ✓</string>
+    <plurals name="essential_apps_edit">
+        <item quantity="one">%1$d essential app · Edit</item>
+        <item quantity="other">%1$d essential apps · Edit</item>
+    </plurals>
+    <plurals name="apps_found">
+        <item quantity="one">%1$d app</item>
+        <item quantity="other">%1$d apps</item>
+    </plurals>
     <string name="accessibility_description">Stayput detects the package name of the app you open during a focus session and shows a full-screen block if it is not in your allowed apps. It does not read screen text, record actions, or send data anywhere. It does nothing outside a session. Enable only if you agree to this app-blocking use.</string>
 </resources>

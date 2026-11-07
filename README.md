@@ -11,7 +11,7 @@ See the [validation report](VALIDATION.md) for tested behavior and known platfor
 - Focus dial, 5–180 minute sessions, duration presets, full-screen accessibility block.
 - Searchable installed-app whitelist, snapshotted for each session; phone and emergency calling remain available.
 - Foreground countdown and draggable floating timer that snaps to the edge and remembers its position.
-- Deliberate three-second hold to add fifteen minutes to a running session.
+- Deliberate three-second hold to add fifteen minutes to a running session, with a confirmation dialog available through a tap, keyboard, or accessibility action.
 - Escape Keys: three local demo keys initially, one consumed per early exit, with an explicitly labeled free demo refill. No billing.
 - Recurring routines with name, local start time, weekdays, duration, and a separate whitelist per routine. Exact alarms when permitted, inexact fallback otherwise. Rescheduled on boot, time-zone/time changes, updates, and app launch. Overlapping routines are skipped.
 - One tower floor per day with at least one completed session, streaks, focus totals, 7/30-day chart, recent history. Early exits count actual focus time but do not earn floors.

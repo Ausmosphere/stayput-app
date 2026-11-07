@@ -2,7 +2,9 @@ package app.stayput;
 
 import android.content.Context;
 import android.graphics.*;
+import android.os.Bundle;
 import android.view.*;
+import android.view.accessibility.AccessibilityNodeInfo;
 import java.util.function.IntConsumer;
 
 public class DialView extends View {
@@ -19,6 +21,10 @@ public class DialView extends View {
     super(c);
     setLayerType(LAYER_TYPE_SOFTWARE, null);
     setFocusable(true);
+    setClickable(true);
+    Ui.action(this, null);
+    // This control supplies range semantics rather than the shared button role.
+    setAccessibilityDelegate(null);
     updateDescription();
   }
 
@@ -30,6 +36,7 @@ public class DialView extends View {
   }
 
   public void countdown(long left, long duration) {
+    setClickable(false);
     remaining = left;
     total = duration;
     setContentDescription("Focus session. " + FocusMath.clock(left) + " remaining");
@@ -39,6 +46,67 @@ public class DialView extends View {
   void updateDescription() {
     setContentDescription(
         minutes + " minute focus session. Drag the dial or tap to add five minutes.");
+  }
+
+  @Override
+  public CharSequence getAccessibilityClassName() {
+    return remaining < 0
+        ? android.widget.SeekBar.class.getName()
+        : android.widget.TextView.class.getName();
+  }
+
+  @Override
+  public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+    super.onInitializeAccessibilityNodeInfo(info);
+    if (remaining < 0) {
+      info.setRangeInfo(
+          AccessibilityNodeInfo.RangeInfo.obtain(
+              AccessibilityNodeInfo.RangeInfo.RANGE_TYPE_INT, 5, 180, minutes));
+      info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SET_PROGRESS);
+      if (minutes < 180)
+        info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_FORWARD);
+      if (minutes > 5)
+        info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_BACKWARD);
+    } else info.setClickable(false);
+  }
+
+  @Override
+  public boolean performAccessibilityAction(int action, Bundle args) {
+    if (remaining < 0) {
+      if (action == AccessibilityNodeInfo.ACTION_SCROLL_FORWARD) return adjust(minutes + 5);
+      if (action == AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD) return adjust(minutes - 5);
+      if (action == AccessibilityNodeInfo.AccessibilityAction.ACTION_SET_PROGRESS.getId()
+          && args != null
+          && args.containsKey(AccessibilityNodeInfo.ACTION_ARGUMENT_PROGRESS_VALUE)) {
+        float value = args.getFloat(AccessibilityNodeInfo.ACTION_ARGUMENT_PROGRESS_VALUE);
+        if (!Float.isNaN(value) && !Float.isInfinite(value))
+          return adjust(Math.round(Math.max(5, Math.min(180, value)) / 5) * 5);
+        return false;
+      }
+    }
+    return super.performAccessibilityAction(action, args);
+  }
+
+  @Override
+  public boolean onKeyDown(int key, KeyEvent event) {
+    if (remaining < 0) {
+      if (key == KeyEvent.KEYCODE_DPAD_RIGHT || key == KeyEvent.KEYCODE_DPAD_UP)
+        return adjust(minutes + 5);
+      if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_DOWN)
+        return adjust(minutes - 5);
+      if (key == KeyEvent.KEYCODE_MOVE_HOME) return adjust(5);
+      if (key == KeyEvent.KEYCODE_MOVE_END) return adjust(180);
+    }
+    return super.onKeyDown(key, event);
+  }
+
+  private boolean adjust(int value) {
+    int next = Math.max(5, Math.min(180, value));
+    if (next == minutes) return true;
+    setMinutes(next);
+    if (listener != null) listener.accept(next);
+    sendAccessibilityEvent(android.view.accessibility.AccessibilityEvent.TYPE_VIEW_SELECTED);
+    return true;
   }
 
   protected void onMeasure(int w, int h) {
@@ -132,8 +200,10 @@ public class DialView extends View {
       if (centerTouch) performClick();
       return true;
     }
-    if (e.getAction() == MotionEvent.ACTION_CANCEL)
+    if (e.getAction() == MotionEvent.ACTION_CANCEL) {
+      centerTouch = false;
       getParent().requestDisallowInterceptTouchEvent(false);
+    }
     return true;
   }
 

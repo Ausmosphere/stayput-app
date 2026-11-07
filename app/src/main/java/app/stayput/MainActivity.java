@@ -11,6 +11,8 @@ import android.text.*;
 import android.view.*;
 import android.widget.*;
 import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.time.format.TextStyle;
 import java.util.*;
 import java.util.function.Consumer;
@@ -26,6 +28,13 @@ public class MainActivity extends Activity {
   boolean showingActive, blockingReady;
   final Handler handler = new Handler(Looper.getMainLooper());
   MediaPlayer preview;
+  private static final int DIAL_ID = View.generateViewId();
+  private static final int[] NAV_IDS = {
+    View.generateViewId(), View.generateViewId(), View.generateViewId(), View.generateViewId()
+  };
+  private static final int[] PRESET_IDS = {
+    View.generateViewId(), View.generateViewId(), View.generateViewId()
+  };
 
   @Override
   public void onCreate(Bundle state) {
@@ -49,7 +58,8 @@ public class MainActivity extends Activity {
   public void onResume() {
     super.onResume();
     isVisible = true;
-    if (FocusAccessibilityService.instance != null) FocusAccessibilityService.instance.hideShield();
+    FocusAccessibilityService blockingService = FocusAccessibilityService.getConnected();
+    if (blockingService != null) blockingService.hideShield();
     render();
     if (Store.active(this))
       try {
@@ -109,19 +119,17 @@ public class MainActivity extends Activity {
       };
 
   void render() {
+    int focusedId = getCurrentFocus() != null ? getCurrentFocus().getId() : View.NO_ID;
     showingActive = Store.active(this);
     blockingReady = Permissions.ready(this);
     dial = null;
     root = Ui.col(this);
     root.setBackgroundColor(Ui.BG);
-    root.setOnApplyWindowInsetsListener(
-        (v, insets) -> {
-          v.setPadding(0, insets.getSystemWindowInsetTop(), 0, insets.getSystemWindowInsetBottom());
-          return insets;
-        });
+    Ui.insets(root, 0, 0, 0);
     LinearLayout header = Ui.row(this);
     Ui.pad(header, 24, 14, 10);
     TextView mark = Ui.bold(this, "Ⅱ", 23, Ui.RED);
+    mark.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
     mark.setGravity(Gravity.CENTER);
     Ui.surface(mark, true);
     header.addView(mark, Ui.width(42, 42, this));
@@ -136,8 +144,10 @@ public class MainActivity extends Activity {
     TextView keyCount = Ui.bold(this, "  " + Store.number(this, "keys", 3), 13, Ui.WHITE);
     keys.addView(keyCount);
     keys.setContentDescription("Escape Keys: " + Store.number(this, "keys", 3));
+    Ui.action(keys, keys.getContentDescription().toString());
     keys.setOnClickListener(v -> keysDialog());
-    header.addView(keys, Ui.width(72, 44, this));
+    keys.setMinimumWidth(Ui.dp(this, 72));
+    header.addView(keys, Ui.width(-2, -2, this));
     root.addView(header);
     scroll = new ScrollView(this);
     scroll.setFillViewport(false);
@@ -168,7 +178,7 @@ public class MainActivity extends Activity {
       Ui.pad(dock, 24, 7, 7);
       dock.addView(
           Ui.button(this, "Start focus session   →", true, () -> prepareSession()),
-          Ui.width(-1, 58, this));
+          Ui.width(-1, -2, this));
       root.addView(dock);
     }
     nav = Ui.row(this);
@@ -178,6 +188,8 @@ public class MainActivity extends Activity {
     for (int i = 0; i < 4; i++) {
       final int index = i;
       LinearLayout item = Ui.col(this);
+      item.setId(NAV_IDS[i]);
+      item.setMinimumHeight(Ui.dp(this, 65));
       item.setGravity(Gravity.CENTER);
       Ui.pad(item, 0, 8, 8);
       boolean selected = tab == i || (tab == 4 && i == 3);
@@ -186,9 +198,11 @@ public class MainActivity extends Activity {
       Ui.gap(item, 7);
       TextView label = Ui.bold(this, labels[i], 10, selected ? Ui.WHITE : Ui.MUTED);
       label.setGravity(Gravity.CENTER);
+      label.setMaxLines(2);
+      label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
       item.addView(label);
-      item.setContentDescription(labels[i] + (selected ? ", selected" : ""));
-      item.setFocusable(true);
+      Ui.action(item, labels[i]);
+      item.setSelected(selected);
       item.setOnClickListener(
           v -> {
             stopPreview();
@@ -196,11 +210,15 @@ public class MainActivity extends Activity {
             tab = index;
             render();
           });
-      nav.addView(item, new LinearLayout.LayoutParams(0, Ui.dp(this, 65), 1));
+      nav.addView(item, new LinearLayout.LayoutParams(0, -2, 1));
     }
     root.addView(nav);
     setContentView(root);
     root.requestApplyInsets();
+    if (focusedId != View.NO_ID) {
+      View restore = root.findViewById(focusedId);
+      if (restore != null) restore.requestFocus();
+    }
     Ui.animateIn(content);
   }
 
@@ -210,6 +228,7 @@ public class MainActivity extends Activity {
     content.addView(e);
     Ui.gap(content, 12);
     TextView h = Ui.text(this, heading, 33, Ui.WHITE);
+    Ui.heading(h);
     h.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
     h.setLineSpacing(Ui.dp(this, 1), 1);
     content.addView(h);
@@ -262,15 +281,25 @@ public class MainActivity extends Activity {
             tab = 4;
             render();
           });
+      Ui.action(banner, "One small setup. Enable blocking and the floating timer");
       content.addView(banner);
       Ui.gap(content, 16);
     }
     dial = new DialView(this);
+    dial.setId(DIAL_ID);
     dial.setMinutes(minutes);
     dial.listener =
         n -> {
           minutes = n;
           Store.set(this, "minutes", n);
+          int[] values = {15, 30, 60};
+          for (int i = 0; i < values.length; i++) {
+            TextView preset = root.findViewById(PRESET_IDS[i]);
+            if (preset == null) continue;
+            preset.setSelected(n == values[i]);
+            preset.setTextColor(n == values[i] ? Ui.RED : Ui.MUTED);
+            Ui.surface(preset, n == values[i]);
+          }
         };
     content.addView(dial, Ui.width(-1, 240, this));
     TextView hint = Ui.text(this, "TURN THE DIAL. TAKE YOUR TIME.", 9, Ui.MUTED);
@@ -280,11 +309,16 @@ public class MainActivity extends Activity {
     Ui.gap(content, 18);
     LinearLayout presets = Ui.row(this);
     presets.setGravity(Gravity.CENTER);
+    int presetIndex = 0;
     for (int n : new int[] {15, 30, 60}) {
       TextView p = Ui.bold(this, n + " min", 12, n == minutes ? Ui.RED : Ui.MUTED);
+      p.setId(PRESET_IDS[presetIndex++]);
       p.setGravity(Gravity.CENTER);
+      p.setPadding(Ui.dp(this, 6), Ui.dp(this, 10), Ui.dp(this, 6), Ui.dp(this, 10));
+      Ui.action(p, n + " minute preset");
+      p.setSelected(n == minutes);
       Ui.surface(p, n == minutes);
-      LinearLayout.LayoutParams lp = Ui.width(78, 43, this);
+      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
       lp.setMargins(Ui.dp(this, 5), 0, Ui.dp(this, 5), 0);
       presets.addView(p, lp);
       p.setOnClickListener(
@@ -306,10 +340,15 @@ public class MainActivity extends Activity {
     TextView label = Ui.bold(this, "Soundscape", 13, Ui.WHITE);
     LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
     lp.leftMargin = Ui.dp(this, 12);
-    sound.addView(label, lp);
-    sound.addView(Ui.text(this, soundName(Store.text(this, "ambient", "none")), 12, Ui.MUTED));
+    LinearLayout soundWords = Ui.col(this);
+    soundWords.addView(label);
+    Ui.gap(soundWords, 5);
+    String currentSound = soundName(Store.text(this, "ambient", "none"));
+    soundWords.addView(Ui.text(this, currentSound, 12, Ui.MUTED));
+    sound.addView(soundWords, lp);
     sound.addView(Ui.icon(this, "arrow", Ui.MUTED, 19));
     sound.setOnClickListener(v -> soundDialog());
+    Ui.action(sound, "Soundscape. " + currentSound);
     content.addView(sound);
     Ui.gap(content, 24);
     TextView footer = Ui.text(this, "Your phone can wait. This moment can't.", 11, Ui.MUTED);
@@ -350,7 +389,9 @@ public class MainActivity extends Activity {
       s.addView(icons);
       c.addView(s);
     }
-    if (editable)
+    if (editable) {
+      Ui.action(
+          c, "Edit essential apps. " + apps.size() + " selected. Phone calls are always allowed.");
       c.setOnClickListener(
           v ->
               chooseApps(
@@ -359,6 +400,7 @@ public class MainActivity extends Activity {
                     Store.allowed(this, result);
                     render();
                   }));
+    }
   }
 
   void prepareSession() {
@@ -425,12 +467,13 @@ public class MainActivity extends Activity {
     TextView breathe = Ui.text(this, "Breathe in. Let the noise out.", 13, Ui.MUTED);
     breathe.setGravity(Gravity.CENTER);
     content.addView(breathe);
-    breathe
-        .animate()
-        .alpha(.45f)
-        .setDuration(2000)
-        .withEndAction(() -> breathe.animate().alpha(1).setDuration(2000).start())
-        .start();
+    if (Ui.motionEnabled())
+      breathe
+          .animate()
+          .alpha(.45f)
+          .setDuration(2000)
+          .withEndAction(() -> breathe.animate().alpha(1).setDuration(2000).start())
+          .start();
     Ui.gap(content, 28);
     essentialsCard(Store.sessionAllowed(this), false);
     Ui.gap(content, 12);
@@ -455,7 +498,9 @@ public class MainActivity extends Activity {
                       toast("This app is unavailable.");
                     }
                 });
-        LinearLayout.LayoutParams appP = Ui.width(140, 54, this);
+        button.setMaxLines(2);
+        button.setEllipsize(TextUtils.TruncateAt.END);
+        LinearLayout.LayoutParams appP = Ui.width(160, -2, this);
         appP.rightMargin = Ui.dp(this, 8);
         launch.addView(button, appP);
       } catch (Exception ignored) {
@@ -468,42 +513,35 @@ public class MainActivity extends Activity {
       content.addView(appScroll);
       Ui.gap(content, 14);
     }
-    TextView extend = Ui.button(this, "Hold 3 seconds to add 15 min", false, () -> {});
-    final long[] began = {0};
-    final Runnable[] extendAction = {null};
-    extend.setOnTouchListener(
-        (v, e) -> {
-          if (e.getAction() == MotionEvent.ACTION_DOWN) {
-            began[0] = SystemClock.elapsedRealtime();
-            extend.setText("Keep holding…");
-            extend.setTextColor(Ui.RED);
-            extendAction[0] =
-                () -> {
-                  if (began[0] > 0 && SystemClock.elapsedRealtime() - began[0] >= 3000) {
-                    Store.extend(this);
-                    AudioFeedback.play(this, "tap");
-                    began[0] = 0;
-                    extend.setText("15 minutes added ✓");
-                    dial.countdown(Store.remaining(this), Store.duration(this));
-                  }
-                };
-            handler.postDelayed(extendAction[0], 3000);
-            return true;
-          }
-          if (e.getAction() == MotionEvent.ACTION_UP
-              || e.getAction() == MotionEvent.ACTION_CANCEL) {
-            if (extendAction[0] != null) handler.removeCallbacks(extendAction[0]);
-            if (began[0] > 0) extend.setText("Hold 3 seconds to add 15 min");
-            began[0] = 0;
-            extend.setTextColor(Ui.MUTED);
-            return true;
-          }
-          return true;
-        });
-    content.addView(extend, Ui.width(-1, 54, this));
+    TextView extend =
+        new Ui.HoldButton(
+            this,
+            () ->
+                new AlertDialog.Builder(this)
+                    .setTitle("Add 15 minutes?")
+                    .setMessage("Extend this focus session by 15 minutes.")
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton(
+                        "Add 15 minutes",
+                        (d, w) -> {
+                          if (Store.active(this)) {
+                            Store.extend(this);
+                            dial.countdown(Store.remaining(this), Store.duration(this));
+                            toast("15 minutes added.");
+                          }
+                        })
+                    .show(),
+            () -> {
+              if (Store.active(this)) {
+                Store.extend(this);
+                AudioFeedback.play(this, "tap");
+                dial.countdown(Store.remaining(this), Store.duration(this));
+              }
+            });
+    content.addView(extend, Ui.width(-1, -2, this));
     Ui.gap(content, 16);
     content.addView(
-        Ui.button(this, "Use an Escape Key", false, () -> keysDialog()), Ui.width(-1, 52, this));
+        Ui.button(this, "Use an Escape Key", false, () -> keysDialog()), Ui.width(-1, -2, this));
     Ui.gap(content, 8);
     TextView note = Ui.text(this, "Need a different sound? Change it in Settings.", 11, Ui.MUTED);
     note.setGravity(Gravity.CENTER);
@@ -566,7 +604,9 @@ public class MainActivity extends Activity {
       Ui.gap(empty, 18);
       empty.addView(Ui.icon(this, "routines", Ui.RED, 40));
       Ui.gap(empty, 18);
-      empty.addView(Ui.bold(this, "Your day, with a little space.", 17, Ui.WHITE));
+      TextView emptyTitle = Ui.bold(this, "Your day, with a little space.", 17, Ui.WHITE);
+      emptyTitle.setGravity(Gravity.CENTER);
+      empty.addView(emptyTitle);
       Ui.gap(empty, 10);
       TextView sub =
           Ui.text(
@@ -590,18 +630,13 @@ public class MainActivity extends Activity {
       desc.addView(Ui.bold(this, r.optString("name"), 16, Ui.WHITE));
       Ui.gap(desc, 8);
       desc.addView(
-          Ui.text(
-              this,
-              String.format(Locale.US, "%02d:%02d", r.optInt("hour"), r.optInt("minute"))
-                  + "   ·   "
-                  + r.optInt("duration")
-                  + " min",
-              13,
-              Ui.MUTED));
+          Ui.text(this, routineTime(r) + "   ·   " + r.optInt("duration") + " min", 13, Ui.MUTED));
       Ui.gap(desc, 8);
       desc.addView(Ui.text(this, daysLabel(r.optJSONArray("days")), 11, Ui.MUTED));
       row.addView(desc, new LinearLayout.LayoutParams(0, -2, 1));
       Switch sw = new Switch(this);
+      sw.setMinimumHeight(Ui.dp(this, 48));
+      sw.setMinimumWidth(Ui.dp(this, 48));
       sw.setChecked(r.optBoolean("enabled", true));
       sw.setContentDescription("Enable " + r.optString("name"));
       sw.setOnCheckedChangeListener(
@@ -618,12 +653,12 @@ public class MainActivity extends Activity {
       Ui.gap(c, 14);
       LinearLayout actions = Ui.row(this);
       TextView edit = Ui.text(this, "Edit routine", 12, Ui.RED);
-      edit.setMinHeight(Ui.dp(this, 38));
+      Ui.action(edit, "Edit " + r.optString("name"));
       edit.setGravity(Gravity.CENTER_VERTICAL);
       edit.setOnClickListener(v -> routineEditor(index));
       actions.addView(edit, new LinearLayout.LayoutParams(0, -2, 1));
       TextView delete = Ui.text(this, "Delete", 12, Ui.MUTED);
-      delete.setMinHeight(Ui.dp(this, 38));
+      Ui.action(delete, "Delete " + r.optString("name"));
       delete.setGravity(Gravity.CENTER_VERTICAL);
       delete.setOnClickListener(
           v ->
@@ -645,7 +680,7 @@ public class MainActivity extends Activity {
     }
     content.addView(
         Ui.button(this, "+   Create a routine", true, () -> routineEditor(-1)),
-        Ui.width(-1, 58, this));
+        Ui.width(-1, -2, this));
   }
 
   String daysLabel(JSONArray days) {
@@ -660,24 +695,37 @@ public class MainActivity extends Activity {
     return s.toString();
   }
 
+  String routineTime(JSONObject routine) {
+    Calendar time = Calendar.getInstance();
+    time.set(Calendar.HOUR_OF_DAY, routine.optInt("hour"));
+    time.set(Calendar.MINUTE, routine.optInt("minute"));
+    return android.text.format.DateFormat.getTimeFormat(this).format(time.getTime());
+  }
+
   void routineEditor(int index) {
     JSONArray routines = Store.routines(this);
     JSONObject existing = index >= 0 ? routines.optJSONObject(index) : null;
     LinearLayout form = Ui.col(this);
     Ui.pad(form, 24, 12, 16);
     EditText name = new EditText(this);
+    name.setId(View.generateViewId());
+    TextView nameLabel = Ui.bold(this, "Routine name", 13, Ui.WHITE);
+    nameLabel.setLabelFor(name.getId());
+    form.addView(nameLabel);
     name.setSingleLine(true);
     name.setHint("Routine name");
     name.setText(existing != null ? existing.optString("name") : "Evening offline");
     form.addView(name);
     TimePicker time = new TimePicker(this);
-    time.setIs24HourView(true);
+    time.setIs24HourView(android.text.format.DateFormat.is24HourFormat(this));
     time.setHour(existing != null ? existing.optInt("hour") : 21);
     time.setMinute(existing != null ? existing.optInt("minute") : 0);
     form.addView(time);
     TextView duration = Ui.text(this, "Duration", 13, Ui.MUTED);
     form.addView(duration);
     NumberPicker picker = new NumberPicker(this);
+    picker.setId(View.generateViewId());
+    duration.setLabelFor(picker.getId());
     picker.setMinValue(1);
     picker.setMaxValue(36);
     String[] durations = new String[36];
@@ -685,8 +733,10 @@ public class MainActivity extends Activity {
     picker.setDisplayedValues(durations);
     picker.setValue(
         existing != null ? Math.max(1, Math.min(36, existing.optInt("duration", 30) / 5)) : 6);
-    form.addView(picker, Ui.width(-1, 100, this));
-    LinearLayout dayRow = Ui.row(this);
+    form.addView(picker, Ui.width(-1, -2, this));
+    form.addView(Ui.bold(this, "Repeat days", 13, Ui.WHITE));
+    GridLayout dayRow = new GridLayout(this);
+    dayRow.setColumnCount(4);
     Set<Integer> selectedDays = new HashSet<>();
     JSONArray old = existing != null ? existing.optJSONArray("days") : null;
     if (old != null) for (int j = 0; j < old.length(); j++) selectedDays.add(old.optInt(j));
@@ -701,17 +751,29 @@ public class MainActivity extends Activity {
               selectedDays.contains(i) ? Ui.RED : Ui.MUTED);
       d.setGravity(Gravity.CENTER);
       Ui.surface(d, selectedDays.contains(i));
-      d.setContentDescription(DayOfWeek.of(i).toString());
+      String dayName = DayOfWeek.of(i).getDisplayName(TextStyle.FULL, Locale.getDefault());
+      Ui.action(d, dayName);
+      d.setSelected(selectedDays.contains(i));
       d.setOnClickListener(
           v -> {
             if (selectedDays.contains(day)) selectedDays.remove(day);
             else selectedDays.add(day);
             d.setTextColor(selectedDays.contains(day) ? Ui.RED : Ui.MUTED);
+            d.setSelected(selectedDays.contains(day));
             Ui.surface(d, selectedDays.contains(day));
           });
-      dayRow.addView(d, new LinearLayout.LayoutParams(0, Ui.dp(this, 44), 1));
+      GridLayout.LayoutParams dayParams =
+          new GridLayout.LayoutParams(
+              GridLayout.spec((i - 1) / 4), GridLayout.spec((i - 1) % 4, 1f));
+      dayParams.width = 0;
+      dayParams.height = -2;
+      dayRow.addView(d, dayParams);
     }
     form.addView(dayRow);
+    TextView dayError = Ui.text(this, "Choose at least one day.", 12, Ui.RED);
+    dayError.setVisibility(View.GONE);
+    dayError.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+    form.addView(dayError);
     Ui.gap(form, 16);
     Set<String> apps = new HashSet<>();
     JSONArray a = existing != null ? existing.optJSONArray("apps") : null;
@@ -720,7 +782,8 @@ public class MainActivity extends Activity {
     TextView appsButton =
         Ui.button(
             this,
-            apps.size() + " essential apps · Edit",
+            getResources()
+                .getQuantityString(R.plurals.essential_apps_edit, apps.size(), apps.size()),
             false,
             () ->
                 chooseApps(
@@ -736,8 +799,22 @@ public class MainActivity extends Activity {
                 result -> {
                   apps.clear();
                   apps.addAll(result);
-                  appsButton.setText(apps.size() + " essential apps · Edit");
+                  appsButton.setText(
+                      getResources()
+                          .getQuantityString(
+                              R.plurals.essential_apps_edit, apps.size(), apps.size()));
+                  appsButton.setContentDescription(appsButton.getText());
                 }));
+    java.util.function.Supplier<List<Object>> draft =
+        () ->
+            Arrays.asList(
+                name.getText().toString(),
+                time.getHour(),
+                time.getMinute(),
+                picker.getValue(),
+                new TreeSet<>(selectedDays),
+                new TreeSet<>(apps));
+    List<Object> originalDraft = draft.get();
     form.addView(appsButton);
     ScrollView sc = new ScrollView(this);
     sc.addView(form);
@@ -756,10 +833,12 @@ public class MainActivity extends Activity {
                     v -> {
                       if (name.getText().toString().trim().isEmpty()) {
                         name.setError("Give your routine a name");
+                        name.requestFocus();
                         return;
                       }
                       if (selectedDays.isEmpty()) {
-                        toast("Choose at least one day.");
+                        dayError.setVisibility(View.VISIBLE);
+                        dayRow.getChildAt(0).requestFocus();
                         return;
                       }
                       try {
@@ -791,6 +870,10 @@ public class MainActivity extends Activity {
                       }
                     }));
     dialog.show();
+    Runnable cancel = () -> dismissDraft(dialog, () -> !draft.get().equals(originalDraft));
+    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener(v -> cancel.run());
+    guardDialogBack(dialog, cancel);
+    dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
   }
 
   void towerPage() {
@@ -837,12 +920,14 @@ public class MainActivity extends Activity {
     for (int n : new int[] {7, 30}) {
       TextView choice = Ui.bold(this, n + "D", 11, chartDays == n ? Ui.RED : Ui.MUTED);
       choice.setGravity(Gravity.CENTER);
+      Ui.action(choice, "Last " + n + " days");
+      choice.setSelected(chartDays == n);
       choice.setOnClickListener(
           v -> {
             chartDays = n;
             render();
           });
-      heading.addView(choice, Ui.width(40, 40, this));
+      heading.addView(choice, Ui.width(48, -2, this));
     }
     content.addView(heading);
     Ui.gap(content, 12);
@@ -868,7 +953,8 @@ public class MainActivity extends Activity {
       desc.addView(
           Ui.text(
               this,
-              s.optString("date") + (s.optBoolean("completed") ? " · Completed" : " · Ended early"),
+              historyDate(s.optString("date"))
+                  + (s.optBoolean("completed") ? " · Completed" : " · Ended early"),
               11,
               Ui.MUTED));
       LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1);
@@ -880,15 +966,26 @@ public class MainActivity extends Activity {
     }
   }
 
+  String historyDate(String date) {
+    try {
+      return LocalDate.parse(date).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM));
+    } catch (java.time.format.DateTimeParseException ignored) {
+      return date;
+    }
+  }
+
   void stat(LinearLayout parent, String label, String value) {
     LinearLayout c = Ui.col(this);
     Ui.surface(c, false);
     Ui.pad(c, 16, 18, 18);
-    c.addView(Ui.text(this, label, 9, Ui.MUTED));
+    TextView caption = Ui.text(this, label, 9, Ui.MUTED);
+    caption.setMinLines(2);
+    c.addView(caption);
     Ui.gap(c, 10);
     c.addView(Ui.bold(this, value, 23, Ui.WHITE));
-    LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1);
-    p.setMargins(0, 0, Ui.dp(this, 8), 0);
+    LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -1, 1);
+    p.setMarginStart(parent.getChildCount() == 0 ? 0 : Ui.dp(this, 4));
+    p.setMarginEnd(parent.getChildCount() == 0 ? Ui.dp(this, 4) : 0);
     parent.addView(c, p);
   }
 
@@ -1022,6 +1119,7 @@ public class MainActivity extends Activity {
     row.addView(Ui.icon(this, "arrow", Ui.MUTED, 20));
     row.setMinimumHeight(Ui.dp(this, 58));
     row.setOnClickListener(v -> action.run());
+    Ui.action(row, title + ". " + description);
     parent.addView(row);
   }
 
@@ -1044,7 +1142,9 @@ public class MainActivity extends Activity {
     p.rightMargin = Ui.dp(this, 8);
     row.addView(words, p);
     Switch sw = new Switch(this);
-    sw.setContentDescription(title);
+    sw.setMinimumHeight(Ui.dp(this, 48));
+    sw.setMinimumWidth(Ui.dp(this, 48));
+    sw.setContentDescription(title + ". " + sub);
     sw.setChecked(Store.bool(this, key, def));
     sw.setOnCheckedChangeListener(
         (v, on) -> {
@@ -1056,6 +1156,11 @@ public class MainActivity extends Activity {
           AudioFeedback.play(this, "tap");
         });
     row.addView(sw);
+    row.setMinimumHeight(Ui.dp(this, 48));
+    row.setOnClickListener(v -> sw.toggle());
+    row.setFocusable(false);
+    row.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    words.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
     parent.addView(row);
   }
 
@@ -1068,6 +1173,7 @@ public class MainActivity extends Activity {
   }
 
   void permissionPage() {
+    boolean connected = FocusAccessibilityService.getConnected() != null;
     title(
         "A GOOD START",
         "Set up your\nspace to focus.",
@@ -1076,13 +1182,13 @@ public class MainActivity extends Activity {
     permissionCard(
         "shield",
         "App blocking",
-        Permissions.accessibility(this) && FocusAccessibilityService.instance != null,
+        Permissions.accessibility(this) && connected,
         "Required · Full-screen block",
-        Permissions.accessibility(this) && FocusAccessibilityService.instance == null
+        Permissions.accessibility(this) && !connected
             ? "Android enabled the service, but it is disconnected. Turn Stayput off and on in"
-                  + " Accessibility settings to reconnect."
+                + " Accessibility settings to reconnect."
             : "Detects only which app is open and covers apps outside your allowed list. Never"
-                  + " reads screen content.",
+                + " reads screen content.",
         () ->
             new AlertDialog.Builder(this)
                 .setTitle("Enable Stayput app blocking?")
@@ -1154,7 +1260,7 @@ public class MainActivity extends Activity {
               tab = 0;
               render();
             }),
-        Ui.width(-1, 58, this));
+        Ui.width(-1, -2, this));
   }
 
   void permissionCard(
@@ -1186,7 +1292,7 @@ public class MainActivity extends Activity {
             enabled ? "Review in Android settings" : "Enable in Android settings   →",
             12,
             enabled ? Ui.MUTED : Ui.RED);
-    open.setMinHeight(Ui.dp(this, 36));
+    Ui.action(open, (enabled ? "Review " : "Enable ") + title + " in Android settings");
     open.setGravity(Gravity.CENTER_VERTICAL);
     open.setOnClickListener(v -> action.run());
     c.addView(open);
@@ -1254,55 +1360,122 @@ public class MainActivity extends Activity {
     }
   }
 
+  static final class AppChoice {
+    final String label, packageName;
+    final android.graphics.drawable.Drawable icon;
+
+    AppChoice(ResolveInfo info, PackageManager packages) {
+      label = info.loadLabel(packages).toString();
+      packageName = info.activityInfo.packageName;
+      icon = info.loadIcon(packages);
+    }
+  }
+
   void chooseApps(Set<String> initial, Consumer<Set<String>> save) {
+    Set<String> original = new HashSet<>(initial);
     Set<String> picked = new HashSet<>(initial);
+    Dialog dialog = new Dialog(this);
+    dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
     LinearLayout form = Ui.col(this);
-    Ui.pad(form, 20, 8, 10);
-    TextView intro =
+    form.setBackgroundColor(Ui.BG);
+    LinearLayout introduction = Ui.col(this);
+    Ui.insets(
+        form,
+        20,
+        16,
+        12,
+        keyboard -> introduction.setVisibility(keyboard ? View.GONE : View.VISIBLE));
+    TextView title = Ui.bold(this, "Pack your essentials", 23, Ui.WHITE);
+    Ui.heading(title);
+    introduction.addView(title);
+    Ui.gap(introduction, 10);
+    introduction.addView(
         Ui.text(
             this,
             "Only these apps stay available during focus. Phone calls are always allowed.",
             12,
-            Ui.MUTED);
-    form.addView(intro);
-    Ui.gap(form, 12);
+            Ui.MUTED));
+    Ui.gap(introduction, 16);
+    form.addView(introduction);
     EditText search = new EditText(this);
+    search.setId(View.generateViewId());
     search.setSingleLine(true);
-    search.setHint("Search your apps");
+    search.setInputType(
+        android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_FILTER);
+    search.setImeOptions(
+        android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+            | android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+    TextView searchLabel = Ui.bold(this, "Search apps", 13, Ui.WHITE);
+    searchLabel.setLabelFor(search.getId());
+    form.addView(searchLabel);
+    search.setHint("Search apps…");
     form.addView(search);
+    TextView status = Ui.text(this, "Loading installed apps…", 12, Ui.MUTED);
+    status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+    Ui.pad(status, 0, 8, 8);
+    form.addView(status);
     ListView list = new ListView(this);
-    form.addView(list, Ui.width(-1, 340, this));
-    TextView loading = Ui.text(this, "Loading installed apps…", 12, Ui.MUTED);
-    form.addView(loading);
-    AlertDialog dialog =
-        new AlertDialog.Builder(this)
-            .setTitle("Pack your essentials")
-            .setView(form)
-            .setNegativeButton("Cancel", null)
-            .setPositiveButton("Save allowed apps", (d, w) -> save.accept(picked))
-            .create();
+    form.addView(list, new LinearLayout.LayoutParams(-1, 0, 1));
+    LinearLayout actions = Ui.row(this);
+    Runnable cancel = () -> dismissDraft(dialog, () -> !picked.equals(original));
+    actions.addView(
+        Ui.button(this, "Cancel", false, cancel), new LinearLayout.LayoutParams(0, -2, 1));
+    TextView saveButton =
+        Ui.button(
+            this,
+            "Save apps",
+            true,
+            () -> {
+              save.accept(new HashSet<>(picked));
+              dialog.dismiss();
+            });
+    saveButton.setEnabled(false);
+    saveButton.setAlpha(.5f);
+    actions.addView(saveButton, new LinearLayout.LayoutParams(0, -2, 1));
+    form.addView(actions);
+    dialog.setContentView(form);
+    Window window = dialog.getWindow();
+    window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Ui.BG));
+    if (Build.VERSION.SDK_INT >= 30) window.setDecorFitsSystemWindows(false);
+    else
+      window
+          .getDecorView()
+          .setSystemUiVisibility(
+              View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                  | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                  | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+    window.setSoftInputMode(
+        WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     dialog.show();
+    window.setLayout(-1, -1);
+    form.requestApplyInsets();
+    guardDialogBack(dialog, cancel);
     new Thread(
             () -> {
+              PackageManager packages = getPackageManager();
               List<ResolveInfo> available =
-                  getPackageManager()
-                      .queryIntentActivities(
-                          new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0);
-              LinkedHashMap<String, ResolveInfo> unique = new LinkedHashMap<>();
-              available.sort(
-                  (a, b) ->
-                      a.loadLabel(getPackageManager())
-                          .toString()
-                          .compareToIgnoreCase(b.loadLabel(getPackageManager()).toString()));
-              for (ResolveInfo r : available)
-                if (!r.activityInfo.packageName.equals(getPackageName()))
-                  unique.put(r.activityInfo.packageName, r);
+                  packages.queryIntentActivities(
+                      new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0);
+              LinkedHashMap<String, AppChoice> unique = new LinkedHashMap<>();
+              for (ResolveInfo info : available) {
+                if (info.activityInfo.packageName.equals(getPackageName())) continue;
+                if (!unique.containsKey(info.activityInfo.packageName)) {
+                  try {
+                    AppChoice choice = new AppChoice(info, packages);
+                    unique.put(choice.packageName, choice);
+                  } catch (RuntimeException ignored) {
+                    // An app can disappear while Android is enumerating installed apps.
+                  }
+                }
+              }
+              ArrayList<AppChoice> all = new ArrayList<>(unique.values());
+              java.text.Collator collator = java.text.Collator.getInstance();
+              all.sort((a, b) -> collator.compare(a.label, b.label));
               runOnUiThread(
                   () -> {
                     if (!dialog.isShowing()) return;
-                    loading.setVisibility(View.GONE);
-                    ArrayList<ResolveInfo> all = new ArrayList<>(unique.values());
-                    ArrayList<ResolveInfo> filtered = new ArrayList<>(all);
+                    ArrayList<AppChoice> filtered = new ArrayList<>(all);
                     BaseAdapter adapter =
                         new BaseAdapter() {
                           public int getCount() {
@@ -1317,41 +1490,72 @@ public class MainActivity extends Activity {
                             return i;
                           }
 
-                          public View getView(int i, View old, android.view.ViewGroup parent) {
-                            ResolveInfo r = filtered.get(i);
-                            String pkg = r.activityInfo.packageName;
-                            LinearLayout row = Ui.row(MainActivity.this);
-                            Ui.pad(row, 4, 10, 10);
-                            ImageView icon = new ImageView(MainActivity.this);
-                            icon.setImageDrawable(r.loadIcon(getPackageManager()));
-                            row.addView(icon, Ui.width(36, 36, MainActivity.this));
-                            TextView name =
-                                Ui.text(
-                                    MainActivity.this,
-                                    r.loadLabel(getPackageManager()).toString(),
-                                    14,
-                                    Ui.WHITE);
-                            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1);
-                            p.leftMargin = Ui.dp(MainActivity.this, 12);
-                            row.addView(name, p);
-                            CheckBox check = new CheckBox(MainActivity.this);
-                            check.setChecked(picked.contains(pkg));
-                            check.setClickable(false);
-                            check.setFocusable(false);
-                            row.addView(check);
-                            row.setContentDescription(
-                                r.loadLabel(getPackageManager())
-                                    + (picked.contains(pkg) ? ", allowed" : ", blocked"));
+                          public View getView(int i, View recycled, ViewGroup parent) {
+                            CheckedTextView row;
+                            if (recycled instanceof CheckedTextView)
+                              row = (CheckedTextView) recycled;
+                            else {
+                              row = new CheckedTextView(MainActivity.this);
+                              row.setTextSize(14);
+                              row.setTextColor(Ui.WHITE);
+                              row.setIncludeFontPadding(false);
+                              Ui.pad(row, 4, 10, 10);
+                              row.setCompoundDrawablePadding(Ui.dp(MainActivity.this, 12));
+                              android.content.res.TypedArray style =
+                                  obtainStyledAttributes(
+                                      new int[] {android.R.attr.listChoiceIndicatorMultiple});
+                              row.setCheckMarkDrawable(style.getDrawable(0));
+                              style.recycle();
+                              row.setCheckMarkTintList(
+                                  new android.content.res.ColorStateList(
+                                      new int[][] {
+                                        new int[] {android.R.attr.state_checked}, new int[] {}
+                                      },
+                                      new int[] {Ui.RED, Ui.MUTED}));
+                              Ui.action(row, null);
+                              // CheckedTextView supplies its own native checkable semantics.
+                              row.setAccessibilityDelegate(null);
+                            }
+                            AppChoice choice = filtered.get(i);
+                            choice.icon.setBounds(
+                                0, 0, Ui.dp(MainActivity.this, 36), Ui.dp(MainActivity.this, 36));
+                            row.setCompoundDrawablesRelative(choice.icon, null, null, null);
+                            row.setText(choice.label);
+                            row.setContentDescription(choice.label);
+                            row.setChecked(picked.contains(choice.packageName));
                             row.setOnClickListener(
                                 v -> {
-                                  if (picked.contains(pkg)) picked.remove(pkg);
-                                  else picked.add(pkg);
-                                  notifyDataSetChanged();
+                                  if (!picked.remove(choice.packageName))
+                                    picked.add(choice.packageName);
+                                  row.setChecked(picked.contains(choice.packageName));
                                 });
                             return row;
                           }
                         };
                     list.setAdapter(adapter);
+                    Runnable updateStatus =
+                        () ->
+                            status.setText(
+                                filtered.isEmpty()
+                                    ? (all.isEmpty()
+                                        ? "No installed apps are available."
+                                        : "No apps match your search.")
+                                    : getResources()
+                                        .getQuantityString(
+                                            R.plurals.apps_found,
+                                            filtered.size(),
+                                            filtered.size()));
+                    Runnable filter =
+                        () -> {
+                          String query =
+                              search.getText().toString().trim().toLowerCase(Locale.getDefault());
+                          filtered.clear();
+                          for (AppChoice choice : all)
+                            if (choice.label.toLowerCase(Locale.getDefault()).contains(query))
+                              filtered.add(choice);
+                          adapter.notifyDataSetChanged();
+                          updateStatus.run();
+                        };
                     search.addTextChangedListener(
                         new TextWatcher() {
                           public void beforeTextChanged(
@@ -1359,21 +1563,47 @@ public class MainActivity extends Activity {
 
                           public void onTextChanged(
                               CharSequence s, int start, int before, int count) {
-                            filtered.clear();
-                            for (ResolveInfo r : all)
-                              if (r.loadLabel(getPackageManager())
-                                  .toString()
-                                  .toLowerCase(Locale.ROOT)
-                                  .contains(s.toString().toLowerCase(Locale.ROOT))) filtered.add(r);
-                            adapter.notifyDataSetChanged();
+                            filter.run();
                           }
 
                           public void afterTextChanged(Editable e) {}
                         });
+                    filter.run();
+                    saveButton.setEnabled(true);
+                    saveButton.setAlpha(1);
                   });
             },
             "installed-apps")
         .start();
+  }
+
+  void dismissDraft(Dialog dialog, java.util.function.BooleanSupplier changed) {
+    if (!changed.getAsBoolean()) {
+      dialog.dismiss();
+      return;
+    }
+    new AlertDialog.Builder(this)
+        .setTitle("Discard changes?")
+        .setMessage("Your changes have not been saved.")
+        .setNegativeButton("Keep editing", null)
+        .setPositiveButton("Discard changes", (d, w) -> dialog.dismiss())
+        .show();
+  }
+
+  void guardDialogBack(Dialog dialog, Runnable back) {
+    dialog.setCanceledOnTouchOutside(false);
+    if (Build.VERSION.SDK_INT >= 33)
+      dialog
+          .getOnBackInvokedDispatcher()
+          .registerOnBackInvokedCallback(
+              android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, back::run);
+    else
+      dialog.setOnKeyListener(
+          (d, key, event) -> {
+            if (key != KeyEvent.KEYCODE_BACK) return false;
+            if (event.getAction() == KeyEvent.ACTION_UP) back.run();
+            return true;
+          });
   }
 
   void toast(String s) {

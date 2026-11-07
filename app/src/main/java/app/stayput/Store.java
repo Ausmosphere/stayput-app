@@ -77,7 +77,7 @@ public final class Store {
         .putInt("boot", boot(c))
         .putStringSet("session_allowed", new HashSet<>(apps))
         .putString("session_label", label)
-        .commit();
+        .apply();
     return true;
   }
 
@@ -89,7 +89,7 @@ public final class Store {
         .putLong("elapsed_end", SystemClock.elapsedRealtime() + left + 900000)
         .putInt("boot", boot(c))
         .putLong("duration", duration(c) + 900000)
-        .commit();
+        .apply();
   }
 
   public static long duration(Context c) {
@@ -97,6 +97,10 @@ public final class Store {
   }
 
   public static synchronized void finish(Context c, boolean completed) {
+    finish(c, completed, p(c).edit());
+  }
+
+  private static void finish(Context c, boolean completed, SharedPreferences.Editor edit) {
     if (!active(c)) return;
     long focused = completed ? duration(c) : Math.max(0, duration(c) - remaining(c));
     JSONArray h = history(c);
@@ -110,14 +114,13 @@ public final class Store {
       h.put(item);
     } catch (JSONException ignored) {
     }
-    p(c).edit().putBoolean("active", false).putString("history", h.toString()).commit();
+    edit.putBoolean("active", false).putString("history", h.toString()).apply();
   }
 
   public static synchronized boolean escape(Context c) {
     int keys = number(c, "keys", 3);
     if (keys <= 0 || !active(c)) return false;
-    p(c).edit().putInt("keys", keys - 1).commit();
-    finish(c, false);
+    finish(c, false, p(c).edit().putInt("keys", keys - 1));
     return true;
   }
 

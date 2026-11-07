@@ -11,6 +11,10 @@ public class StatsView extends View {
   final int days;
   final long[] values;
 
+  public StatsView(Context c) {
+    this(c, 7);
+  }
+
   public StatsView(Context c, int days) {
     super(c);
     this.days = days;
@@ -28,12 +32,34 @@ public class StatsView extends View {
       } catch (Exception ignored) {
       }
     }
-    setContentDescription("Daily focus time for the last " + days + " days");
+    StringBuilder summary = new StringBuilder("Daily focus time for the last " + days + " days. ");
+    boolean recorded = false;
+    java.time.format.DateTimeFormatter dates =
+        java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM);
+    for (int i = 0; i < days; i++) {
+      if (values[i] <= 0) continue;
+      recorded = true;
+      summary
+          .append(first.plusDays(i).format(dates))
+          .append(": ")
+          .append(Ui.duration(values[i]))
+          .append(". ");
+    }
+    if (!recorded) summary.append("No focus time recorded yet.");
+    setContentDescription(summary);
+  }
+
+  @Override
+  public CharSequence getAccessibilityClassName() {
+    return android.widget.ImageView.class.getName();
   }
 
   protected void onDraw(Canvas c) {
     float d = getResources().getDisplayMetrics().density;
-    float width = getWidth(), height = getHeight() - 24 * d;
+    float labelSize =
+        android.util.TypedValue.applyDimension(
+            android.util.TypedValue.COMPLEX_UNIT_SP, 10, getResources().getDisplayMetrics());
+    float width = getWidth(), height = getHeight() - labelSize - 14 * d;
     long max = 3600000;
     for (long v : values) max = Math.max(max, v);
     p.setColor(Ui.LINE);
@@ -47,7 +73,7 @@ public class StatsView extends View {
           i * col + col * .2f, height - h, i * col + col * .8f, height, 3 * d, 3 * d, p);
     }
     p.setColor(Ui.MUTED);
-    p.setTextSize(10 * d);
+    p.setTextSize(labelSize);
     p.setTextAlign(Paint.Align.LEFT);
     c.drawText((days - 1) + " days ago", 0, getHeight() - 2 * d, p);
     p.setTextAlign(Paint.Align.RIGHT);

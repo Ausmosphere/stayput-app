@@ -13,7 +13,7 @@ public class BlockService extends Service {
   public static final String CHANNEL = "focus", ROUTINES = "routines";
   private final Handler handler = new Handler(Looper.getMainLooper());
   private WindowManager wm;
-  private LinearLayout pill;
+  private Ui.TappableRow pill;
   private TextView clock;
   private WindowManager.LayoutParams params;
   private MediaPlayer player;
@@ -109,14 +109,15 @@ public class BlockService extends Service {
           else restoreDnd();
           ambient();
           glyph.update(remaining, Store.duration(BlockService.this));
-          FocusAccessibilityService service = FocusAccessibilityService.instance;
+          FocusAccessibilityService service = FocusAccessibilityService.getConnected();
           if (service != null) service.refresh();
           handler.postDelayed(this, 1000);
         }
       };
 
+  @android.annotation.SuppressLint("RtlHardcoded") // Drag coordinates use physical screen edges.
   private void showPill() {
-    pill = Ui.row(this);
+    pill = new Ui.TappableRow(this);
     Ui.pad(pill, 14, 8, 8);
     Ui.surface(pill, false);
     pill.addView(Ui.icon(this, "focus", Ui.RED, 19));
@@ -125,10 +126,12 @@ public class BlockService extends Service {
     time.leftMargin = Ui.dp(this, 8);
     pill.addView(clock, time);
     pill.setContentDescription("Stayput floating timer. Drag to move, tap to open.");
+    Ui.action(pill, pill.getContentDescription().toString());
+    pill.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
     params =
         new WindowManager.LayoutParams(
-            Ui.dp(this, 126),
-            Ui.dp(this, 48),
+            Math.max(Ui.dp(this, 126), pill.getMeasuredWidth()),
+            Math.max(Ui.dp(this, 48), pill.getMeasuredHeight()),
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                 | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
@@ -284,7 +287,7 @@ public class BlockService extends Service {
     releaseAudio();
     restoreDnd();
     glyph.close();
-    FocusAccessibilityService s = FocusAccessibilityService.instance;
+    FocusAccessibilityService s = FocusAccessibilityService.getConnected();
     if (s != null) s.refresh();
     stopForeground(STOP_FOREGROUND_REMOVE);
     stopSelf();

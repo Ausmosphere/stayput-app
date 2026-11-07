@@ -1,9 +1,12 @@
 package app.stayput;
 
+import android.animation.ValueAnimator;
 import android.content.*;
 import android.graphics.*;
-import android.graphics.drawable.Drawable;
+import android.graphics.drawable.*;
+import android.os.Build;
 import android.view.*;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.animation.*;
 import android.widget.*;
 
@@ -47,6 +50,18 @@ public final class Ui {
     return v;
   }
 
+  public static class TappableRow extends LinearLayout {
+    public TappableRow(Context c) {
+      super(c);
+      setGravity(Gravity.CENTER_VERTICAL);
+    }
+
+    @Override
+    public boolean performClick() {
+      return super.performClick();
+    }
+  }
+
   public static void pad(View v, int h, int top, int bottom) {
     v.setPadding(
         dp(v.getContext(), h),
@@ -66,6 +81,11 @@ public final class Ui {
   }
 
   public static void animateIn(View v) {
+    if (!motionEnabled()) {
+      v.setAlpha(1);
+      v.setTranslationY(0);
+      return;
+    }
     v.setAlpha(0);
     v.setTranslationY(dp(v.getContext(), 8));
     v.animate()
@@ -76,28 +96,193 @@ public final class Ui {
         .start();
   }
 
+  public static boolean motionEnabled() {
+    return ValueAnimator.areAnimatorsEnabled();
+  }
+
+  /** Native button semantics and visible focus for the app's custom controls. */
+  public static void action(View v, String label) {
+    v.setFocusable(true);
+    v.setClickable(true);
+    v.setMinimumWidth(dp(v.getContext(), 48));
+    v.setMinimumHeight(dp(v.getContext(), 48));
+    if (label != null) v.setContentDescription(label);
+    if (Build.VERSION.SDK_INT >= 28) v.setScreenReaderFocusable(true);
+    v.setAccessibilityDelegate(
+        new View.AccessibilityDelegate() {
+          @Override
+          public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(host, info);
+            info.setClassName(Button.class.getName());
+            info.setSelected(host.isSelected());
+          }
+        });
+    StateListDrawable feedback = new StateListDrawable();
+    GradientDrawable focused = new GradientDrawable();
+    focused.setColor(Color.TRANSPARENT);
+    focused.setCornerRadius(dp(v.getContext(), 17));
+    focused.setStroke(dp(v.getContext(), 2), RED);
+    feedback.addState(new int[] {android.R.attr.state_focused}, focused);
+    GradientDrawable pressed = new GradientDrawable();
+    pressed.setColor(0x20000000);
+    pressed.setStroke(dp(v.getContext(), 1), RED);
+    pressed.setCornerRadius(dp(v.getContext(), 17));
+    feedback.addState(new int[] {android.R.attr.state_pressed}, pressed);
+    feedback.addState(new int[] {}, new ColorDrawable(Color.TRANSPARENT));
+    v.setForeground(feedback);
+  }
+
+  public static void heading(TextView v) {
+    if (Build.VERSION.SDK_INT >= 28) v.setAccessibilityHeading(true);
+  }
+
+  public static void insets(View v, int horizontal, int top, int bottom) {
+    insets(v, horizontal, top, bottom, null);
+  }
+
+  public static void insets(
+      View v, int horizontal, int top, int bottom, java.util.function.Consumer<Boolean> keyboard) {
+    v.setOnApplyWindowInsetsListener(
+        (view, insets) -> {
+          int left, up, right, down;
+          if (Build.VERSION.SDK_INT >= 30) {
+            Insets safe =
+                insets.getInsets(
+                    WindowInsets.Type.systemBars()
+                        | WindowInsets.Type.displayCutout()
+                        | WindowInsets.Type.ime());
+            left = safe.left;
+            up = safe.top;
+            right = safe.right;
+            down = safe.bottom;
+          } else {
+            left = insets.getSystemWindowInsetLeft();
+            up = insets.getSystemWindowInsetTop();
+            right = insets.getSystemWindowInsetRight();
+            down = insets.getSystemWindowInsetBottom();
+          }
+          view.setPadding(
+              dp(view.getContext(), horizontal) + left,
+              dp(view.getContext(), top) + up,
+              dp(view.getContext(), horizontal) + right,
+              dp(view.getContext(), bottom) + down);
+          if (keyboard != null)
+            keyboard.accept(
+                Build.VERSION.SDK_INT >= 30
+                    ? insets.isVisible(WindowInsets.Type.ime())
+                    : down > dp(view.getContext(), 150));
+          return insets;
+        });
+  }
+
   public static TextView button(Context c, String label, boolean primary, Runnable action) {
     TextView v = bold(c, label, 15, primary ? WHITE : MUTED);
+    buttonStyle(v, label, primary, action);
+    return v;
+  }
+
+  static void buttonStyle(TextView v, String label, boolean primary, Runnable action) {
+    Context c = v.getContext();
+    v.setText(label);
+    v.setTextSize(15);
+    v.setTextColor(primary ? WHITE : MUTED);
+    v.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+    v.setIncludeFontPadding(false);
     v.setGravity(Gravity.CENTER);
-    v.setMinHeight(dp(c, 54));
+    v.setMinHeight(dp(c, 58));
     v.setPadding(dp(c, 16), dp(c, 12), dp(c, 16), dp(c, 12));
     v.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-    v.setBackground(new NeoDrawable(c, false, 17, primary ? Color.rgb(216, 53, 60) : CARD));
-    v.setContentDescription(label);
-    v.setFocusable(true);
+    v.setBackground(new NeoDrawable(c, false, 17, primary ? Color.rgb(204, 43, 51) : CARD));
+    action(v, label);
     v.setOnClickListener(
         x -> {
           AudioFeedback.play(c, "tap");
           v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-          v.animate()
-              .scaleX(.975f)
-              .scaleY(.975f)
-              .setDuration(70)
-              .withEndAction(() -> v.animate().scaleX(1).scaleY(1).setDuration(130).start())
-              .start();
+          if (motionEnabled())
+            v.animate()
+                .scaleX(.975f)
+                .scaleY(.975f)
+                .setDuration(70)
+                .withEndAction(() -> v.animate().scaleX(1).scaleY(1).setDuration(130).start())
+                .start();
           action.run();
         });
-    return v;
+  }
+
+  /** A deliberate hold with a normal click alternative for keyboards and TalkBack. */
+  @android.annotation.SuppressLint("ViewConstructor") // Constructed with explicit session actions.
+  public static class HoldButton extends TextView {
+    private boolean completed;
+    private final Runnable hold;
+    private final Runnable complete = this::completeHold;
+
+    private void completeHold() {
+      if (!isPressed() || !hasWindowFocus()) return;
+      completed = true;
+      setText(app.stayput.R.string.extend_added);
+      announceForAccessibility(getText());
+      hold.run();
+    }
+
+    public HoldButton(Context c, Runnable click, Runnable hold) {
+      super(c);
+      this.hold = hold;
+      buttonStyle(this, c.getString(app.stayput.R.string.extend_hold), false, click);
+      setContentDescription("Add 15 minutes. Hold for 3 seconds, or activate to confirm.");
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+      if (!isEnabled()) return false;
+      switch (event.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          completed = false;
+          setMinHeight(Math.max(getMinHeight(), getHeight()));
+          setPressed(true);
+          setText(app.stayput.R.string.extend_holding);
+          postDelayed(complete, 3000);
+          return true;
+        case MotionEvent.ACTION_MOVE:
+          if (event.getX() < 0
+              || event.getY() < 0
+              || event.getX() >= getWidth()
+              || event.getY() >= getHeight()) cancelHold();
+          return true;
+        case MotionEvent.ACTION_UP:
+          boolean tap = isPressed() && !completed;
+          cancelHold();
+          if (tap) performClick();
+          return true;
+        case MotionEvent.ACTION_CANCEL:
+          cancelHold();
+          return true;
+        default:
+          return super.onTouchEvent(event);
+      }
+    }
+
+    @Override
+    public boolean performClick() {
+      return super.performClick();
+    }
+
+    private void cancelHold() {
+      removeCallbacks(complete);
+      setPressed(false);
+      if (!completed) setText(app.stayput.R.string.extend_hold);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean focused) {
+      super.onWindowFocusChanged(focused);
+      if (!focused) cancelHold();
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+      cancelHold();
+      super.onDetachedFromWindow();
+    }
   }
 
   public static Icon icon(Context c, String type, int color, int size) {
@@ -176,6 +361,10 @@ public final class Ui {
     String type;
     int color;
     Paint p = new Paint(3);
+
+    public Icon(Context c) {
+      this(c, "focus", RED);
+    }
 
     public Icon(Context c, String type, int color) {
       super(c);

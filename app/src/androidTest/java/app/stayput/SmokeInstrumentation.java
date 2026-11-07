@@ -59,9 +59,6 @@ public class SmokeInstrumentation extends Instrumentation {
           });
       prefs.edit().clear().commit();
       getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES);
-      check(
-          Permissions.accessibility(c) && Permissions.overlay(c),
-          "Blocking and overlay permissions granted");
       Store.set(c, "feedback", false);
       Store.set(c, "ambient", "none");
       Activity activity =
@@ -74,10 +71,28 @@ public class SmokeInstrumentation extends Instrumentation {
           "settings put secure enabled_accessibility_services"
               + " app.stayput/app.stayput.FocusAccessibilityService");
       shell("settings put secure accessibility_enabled 1");
-      until(() -> FocusAccessibilityService.instance != null, "Accessibility service connected");
+      until(
+          () -> FocusAccessibilityService.getConnected() != null,
+          "Accessibility service connected");
+      check(
+          Permissions.accessibility(c) && Permissions.overlay(c),
+          "Blocking and overlay permissions granted");
       check(Permissions.ready(c), "Session readiness requires a live blocking service");
+      shell("settings put secure enabled_accessibility_services ''");
+      until(
+          () -> FocusAccessibilityService.getConnected() == null,
+          "Disconnected accessibility service is released");
+      check(!Permissions.ready(c), "Disconnected service cannot report session readiness");
+      shell(
+          "settings put secure enabled_accessibility_services"
+              + " app.stayput/app.stayput.FocusAccessibilityService");
+      shell("settings put secure accessibility_enabled 1");
+      until(
+          () -> FocusAccessibilityService.getConnected() != null && Permissions.ready(c),
+          "Accessibility service reconnects after release");
       capture("01-focus");
       MainActivity screen = (MainActivity) activity;
+      UiChecks.run(this, screen);
       for (int page : new int[] {4, 1, 2, 3}) {
         runOnMainSync(
             () -> {
@@ -93,6 +108,12 @@ public class SmokeInstrumentation extends Instrumentation {
           });
       check(
           Store.begin(c, 5, set("com.android.settings"), "Integration session"), "Session starts");
+      until(
+          () ->
+              "true".equals(persisted(c).get("active"))
+                  && Long.toString(Store.duration(c)).equals(persisted(c).get("duration")),
+          "Session start is written to disk");
+      UiChecks.active(this, screen);
       check(!Store.begin(c, 60, set(), "Duplicate"), "Overlapping sessions rejected");
       Store.allowed(c, set("com.android.contacts"));
       check(
@@ -103,6 +124,9 @@ public class SmokeInstrumentation extends Instrumentation {
       check(
           Math.abs(Store.remaining(c) - before - 900000) < 2000,
           "Extension adds exactly fifteen minutes");
+      until(
+          () -> Long.toString(Store.duration(c)).equals(persisted(c).get("duration")),
+          "Extended duration is written to disk");
       Store.set(c, "keys", 0);
       check(!Store.escape(c) && Store.active(c), "Empty key balance cannot end session");
       runOnMainSync(
@@ -117,7 +141,7 @@ public class SmokeInstrumentation extends Instrumentation {
               .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
       Thread.sleep(4000);
       check(
-          !FocusAccessibilityService.instance.isBlockingVisible(),
+          !FocusAccessibilityService.getConnected().isBlockingVisible(),
           "Whitelisted Settings remains usable");
       capture("floating-timer");
       String blocked = "com.google.android.apps.photos";
@@ -129,15 +153,37 @@ public class SmokeInstrumentation extends Instrumentation {
       check(launch != null, "A non-whitelisted app is installed");
       c.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
       until(
-          () -> FocusAccessibilityService.instance.isBlockingVisible(),
+          () -> FocusAccessibilityService.getConnected().isBlockingVisible(),
           "Non-whitelisted app receives full-screen block");
       capture("03-blocked-app");
       Store.set(c, "keys", 2);
-      check(Store.escape(c), "Escape Key ends active session");
+      boolean[] atomicExit = {false};
+      android.content.SharedPreferences.OnSharedPreferenceChangeListener exitListener =
+          (preferences, key) -> {
+            if ("keys".equals(key) && preferences.getInt("keys", 0) == 1)
+              atomicExit[0] = !Store.active(c) && Store.history(c).length() == 1;
+          };
+      boolean[] escaped = {false};
+      prefs.registerOnSharedPreferenceChangeListener(exitListener);
+      try {
+        runOnMainSync(() -> escaped[0] = Store.escape(c));
+      } finally {
+        prefs.unregisterOnSharedPreferenceChangeListener(exitListener);
+      }
+      check(escaped[0], "Escape Key ends active session");
+      check(atomicExit[0], "Preference observers see a complete early-exit transaction");
       check(Store.number(c, "keys", 0) == 1, "Exactly one key consumed");
+      until(
+          () -> {
+            Map<String, String> disk = persisted(c);
+            return "false".equals(disk.get("active"))
+                && "1".equals(disk.get("keys"))
+                && Store.history(c).toString().equals(disk.get("history"));
+          },
+          "Early-exit key balance, history, and inactive state reach disk together");
       Store.changed(c);
       until(
-          () -> !FocusAccessibilityService.instance.isBlockingVisible(),
+          () -> !FocusAccessibilityService.getConnected().isBlockingVisible(),
           "Block overlay removed after early exit");
       check(
           Store.history(c).length() == 1
@@ -167,6 +213,10 @@ public class SmokeInstrumentation extends Instrumentation {
       result.putInt("checks", checks);
       status = Activity.RESULT_OK;
     } catch (Throwable e) {
+      try {
+        capture("ui-failure");
+      } catch (Exception ignored) {
+      }
       result.putString(
           "stream", report + "\nFAIL: " + e + "\n" + android.util.Log.getStackTraceString(e));
       status = Activity.RESULT_CANCELED;
@@ -174,8 +224,8 @@ public class SmokeInstrumentation extends Instrumentation {
       runOnMainSync(
           () -> {
             c.stopService(new Intent(c, BlockService.class));
-            if (FocusAccessibilityService.instance != null)
-              FocusAccessibilityService.instance.hideShield();
+            FocusAccessibilityService service = FocusAccessibilityService.getConnected();
+            if (service != null) service.hideShield();
           });
       android.content.SharedPreferences.Editor edit = prefs.edit().clear();
       for (Map.Entry<String, ?> entry : saved.entrySet()) {
@@ -200,6 +250,28 @@ public class SmokeInstrumentation extends Instrumentation {
       byte[] buffer = new byte[1024];
       while (stream.read(buffer) != -1) {}
     }
+  }
+
+  Map<String, String> persisted(Context c) {
+    Map<String, String> values = new HashMap<>();
+    java.io.File file =
+        new java.io.File(c.getApplicationInfo().dataDir, "shared_prefs/stayput.xml");
+    try (java.io.InputStream stream = new java.io.FileInputStream(file)) {
+      org.xmlpull.v1.XmlPullParser xml = android.util.Xml.newPullParser();
+      xml.setInput(stream, "UTF-8");
+      for (int event = xml.getEventType();
+          event != org.xmlpull.v1.XmlPullParser.END_DOCUMENT;
+          event = xml.next()) {
+        if (event != org.xmlpull.v1.XmlPullParser.START_TAG) continue;
+        String key = xml.getAttributeValue(null, "name");
+        if (key == null) continue;
+        if ("string".equals(xml.getName())) values.put(key, xml.nextText());
+        else values.put(key, xml.getAttributeValue(null, "value"));
+      }
+    } catch (Exception ignored) {
+      // The first asynchronous write may not have created the file yet.
+    }
+    return values;
   }
 
   void capture(String name) throws Exception {

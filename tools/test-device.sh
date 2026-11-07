@@ -1,10 +1,19 @@
 #!/usr/bin/env sh
 # Use only with a disposable emulator; enables the app's blocking permissions for the test.
 set -eu
+# Keep Git Bash from rewriting Android device paths as Windows paths.
+export MSYS_NO_PATHCONV=1
 cd "$(dirname "$0")/.."
 ADB=${ADB:-adb}
 mkdir -p artifacts
 "$ADB" wait-for-device
+DEVICE_SERIAL=$("$ADB" get-serialno)
+case "$DEVICE_SERIAL" in
+    emulator-*) ;;
+    *) echo 'Device tests require a disposable emulator; refusing to alter a physical phone.'; exit 1 ;;
+esac
+# Use a regular software keyboard instead of emulator stylus onboarding.
+"$ADB" shell settings put secure stylus_handwriting_enabled 0
 attempt=0
 until [ "$("$ADB" shell getprop sys.boot_completed | tr -d '\r')" = 1 ]; do
     attempt=$((attempt+1))

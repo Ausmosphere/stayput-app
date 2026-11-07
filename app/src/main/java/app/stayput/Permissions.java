@@ -28,7 +28,7 @@ public final class Permissions {
   }
 
   public static boolean ready(Context c) {
-    return accessibility(c) && overlay(c) && FocusAccessibilityService.instance != null;
+    return accessibility(c) && overlay(c) && FocusAccessibilityService.getConnected() != null;
   }
 
   public static boolean notifications(Context c) {
