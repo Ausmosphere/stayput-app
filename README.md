@@ -36,8 +36,8 @@ The debug APK is at `app/build/outputs/apk/debug/app-debug.apk`. Release signing
 
 ## Automatic Android downloads
 
-Every push to `main`, including a merged pull request, runs the [Android build workflow](https://github.com/ausgomez/Stayput-App/actions/workflows/android-build.yml).
-After the core checks, debug build, lint, and APK signature verification pass, it publishes a separate [GitHub prerelease](https://github.com/ausgomez/Stayput-App/releases) containing `Stayput.apk`, `SHA256SUMS.txt`, and the source commit/build details.
+Every push to `main`, including a merged pull request, runs the [Android build workflow](https://github.com/Ausmosphere/Stayput-App/actions/workflows/android-build.yml).
+After the core checks, debug build, lint, and APK signature verification pass, it publishes a separate [GitHub prerelease](https://github.com/Ausmosphere/Stayput-App/releases) containing `Stayput.apk`, `SHA256SUMS.txt`, and the source commit/build details.
 Open the newest build and download `Stayput.apk` to install it on an Android phone.
 The workflow can also be started manually from the Actions tab with `main` selected.
 
