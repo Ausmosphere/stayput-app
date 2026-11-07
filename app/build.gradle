@@ -2,6 +2,12 @@ plugins { id 'com.android.application' }
 android {
     namespace 'app.stayput'
     compileSdk 35
+    signingConfigs {
+        debug {
+            def developmentKeystore = providers.gradleProperty('developmentKeystore')
+            if (developmentKeystore.isPresent()) storeFile file(developmentKeystore.get())
+        }
+    }
     defaultConfig {
         applicationId 'app.stayput'
         minSdk 26

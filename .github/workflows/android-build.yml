@@ -40,21 +40,29 @@ jobs:
             echo '::error::Missing ANDROID_DEBUG_KEYSTORE_BASE64 repository secret.'
             exit 1
           fi
-          install -d -m 700 "$HOME/.android"
-          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$HOME/.android/debug.keystore"
-          chmod 600 "$HOME/.android/debug.keystore"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/stayput-debug.keystore"
+          chmod 600 "$RUNNER_TEMP/stayput-debug.keystore"
 
       - name: Run core checks
         run: sh tools/test-core.sh
 
       - name: Build APK and run lint
-        run: sh gradlew --no-daemon assembleDebug lintDebug
+        run: sh gradlew --no-daemon -PdevelopmentKeystore="$RUNNER_TEMP/stayput-debug.keystore" assembleDebug lintDebug
 
       - name: Package download
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk dist/Stayput.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/Stayput.apk
+          keytool -exportcert -keystore "$RUNNER_TEMP/stayput-debug.keystore" \
+            -storepass android -alias androiddebugkey > "$RUNNER_TEMP/stayput-signing-cert.der"
+          expected=$(sha256sum "$RUNNER_TEMP/stayput-signing-cert.der" | cut -d ' ' -f 1)
+          actual=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs dist/Stayput.apk \
+            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          if [ "$actual" != "$expected" ]; then
+            echo '::error::APK signing certificate does not match the saved development key.'
+            exit 1
+          fi
           cd dist
           sha256sum Stayput.apk > SHA256SUMS.txt
           printf 'Commit: %s\nBuild: %s\nRun: https://github.com/%s/actions/runs/%s\n' \
@@ -79,7 +87,7 @@ jobs:
 
       - name: Remove signing key
         if: always()
-        run: rm -f "$HOME/.android/debug.keystore"
+        run: rm -f "$RUNNER_TEMP/stayput-debug.keystore" "$RUNNER_TEMP/stayput-signing-cert.der"
 
   release:
     name: Publish GitHub prerelease
