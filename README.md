@@ -1,101 +1,244 @@
+![Stayput banner: Make room for real life.](docs/assets/stayput-banner.png)
+
 # Stayput
 
-A native Android digital wellbeing MVP with a black and red neumorphic interface. Built with Java and Android framework views, with no web wrapper, analytics, account, or internet permission. Package: `app.stayput`. Android 8.0+ (API 26); targets Android 15 (API 35).
+Stayput helps you step away from distracting apps while keeping your phone useful.
+Choose a focus duration, pick the extra apps you need, and let the rest take a break.
 
-<img src="docs/screenshots/focus.png" alt="Stayput focus dial in its black and red neumorphic interface" width="300" />
+Your default **Phone, Messages, and keyboard** are always available, including Gboard when it is your selected keyboard.
+Finish sessions, build a daily streak, and watch your focus tower grow.
 
-See the [validation report](VALIDATION.md) for tested behavior and known platform limits. More [screenshots](docs/screenshots/) show sessions, app blocking, permissions, routines, and the floating timer.
+**Android 8.0+** · **Native Android** · **Local data** · **No account or subscription**
 
-## Included
+[**Download the APK**](https://github.com/Ausmosphere/Stayput-App/releases) · [Screenshots](#screenshots) · [Set up Stayput](#install-and-set-up) · [Build from source](#build-from-source)
 
-- Focus dial, 5–180 minute sessions, duration presets, full-screen accessibility block.
-- Searchable installed-app whitelist, with optional selections snapshotted for each session.
-  The device's default Phone, Messages, and keyboard app (including Gboard when selected) are always included automatically, including in existing routines.
-  These entries are labeled **Always included** in the app picker and follow changes to the device defaults; emergency calling remains available.
-- Foreground countdown and draggable floating timer that snaps to the edge and remembers its position.
-- Deliberate three-second hold to add fifteen minutes to a running session, with a confirmation dialog available through a tap, keyboard, or accessibility action.
-- Escape Keys: three local demo keys initially, one consumed per early exit, with an explicitly labeled free demo refill. No billing.
-- Recurring routines with name, local start time, weekdays, duration, and a separate whitelist per routine. Exact alarms when permitted, inexact fallback otherwise. Rescheduled on boot, time-zone/time changes, updates, and app launch. Overlapping routines are skipped.
-- One tower floor per day with at least one completed session, streaks, focus totals, 7/30-day chart, recent history. Early exits count actual focus time but do not earn floors.
-- Quiet, soft rain, ocean waves, white noise, and distant-city soundscapes; optional interface sounds, haptics, and transitions. Audio is originally synthesized for this project.
-- Optional Do Not Disturb, with previous interruption mode restored on exit.
-- Optional Nothing Glyph countdown, using Nothing's official SDK, on supported phones when face down.
-- Permission onboarding with live checks when returning from system settings.
+> Stayput is a development preview.
+> Open the newest GitHub prerelease and download **Stayput.apk** to try it.
 
-Home screen widgets and cloud backup are deliberately omitted. All features are accessible without a subscription.
+## How it works
 
-## Build
+1. **Keep your essentials.**
+   Phone, Messages, and your default keyboard are included automatically.
+   Add any other apps you want available during focus.
+2. **Choose your time.**
+   Turn the dial to set a session from 5 to 180 minutes, or use a 15, 30, or 60 minute preset.
+3. **Give yourself some space.**
+   Opening an app outside your essentials brings up Stayput's blocking screen.
+   A floating timer keeps your remaining time visible while you use an allowed app.
+4. **Build a habit.**
+   Complete a session to record your progress.
+   Each day with a completed session adds one floor to your focus tower.
 
-Open this directory in Android Studio, install Android SDK Platform 35 and Build Tools 35, then sync and run `app`. Use JDK 17 or 21.
+## Screenshots
+
+Actual captures from the current app on an Android 15 emulator, using example routines and session history.
+Tap a screenshot to open it at full size.
+
+<table>
+  <tr>
+    <th>Choose your focus</th>
+    <th>Stay with your session</th>
+    <th>Pause distractions</th>
+  </tr>
+  <tr>
+    <td><a href="docs/screenshots/current/focus.png"><img src="docs/screenshots/current/focus.png" alt="Focus screen with duration dial, presets, and automatically included Phone, Messages, and Gboard apps" width="250" /></a></td>
+    <td><a href="docs/screenshots/current/session.png"><img src="docs/screenshots/current/session.png" alt="Active focus session with countdown and access to essential apps" width="250" /></a></td>
+    <td><a href="docs/screenshots/current/blocked-app.png"><img src="docs/screenshots/current/blocked-app.png" alt="Stayput blocking screen over an app outside the session whitelist" width="250" /></a></td>
+  </tr>
+  <tr>
+    <th>Make focus a routine</th>
+    <th>Watch your tower grow</th>
+    <th>Make it yours</th>
+  </tr>
+  <tr>
+    <td><a href="docs/screenshots/current/routines.png"><img src="docs/screenshots/current/routines.png" alt="Morning focus and Evening offline routines with their times, durations, and repeat days" width="250" /></a></td>
+    <td><a href="docs/screenshots/current/tower.png"><img src="docs/screenshots/current/tower.png" alt="Example seven-day streak, four hours and 25 minutes of focus time, and a seven-floor tower" width="250" /></a></td>
+    <td><a href="docs/screenshots/current/settings.png"><img src="docs/screenshots/current/settings.png" alt="Settings for the floating timer, Do Not Disturb, soundscapes, interface sounds, and Glyph progress" width="250" /></a></td>
+  </tr>
+</table>
+
+<details>
+<summary>See permission setup and the floating timer</summary>
+
+<table>
+  <tr>
+    <th>Set up blocking</th>
+    <th>Keep time in view</th>
+  </tr>
+  <tr>
+    <td><a href="docs/screenshots/current/permissions.png"><img src="docs/screenshots/current/permissions.png" alt="Permission setup screen explaining app blocking and floating timer access" width="250" /></a></td>
+    <td><a href="docs/screenshots/current/floating-timer.png"><img src="docs/screenshots/current/floating-timer.png" alt="Stayput's floating countdown over the Phone app during a focus session" width="250" /></a></td>
+  </tr>
+</table>
+
+</details>
+
+## Features
+
+| Feature | What you can do |
+| --- | --- |
+| **Flexible focus sessions** | Set 5 to 180 minutes with the dial, keyboard controls, accessibility actions, or duration presets. |
+| **Automatic essentials** | Keep the device's default Phone, Messages, and keyboard apps available in manual sessions and routines. |
+| **Your own whitelist** | Search installed apps and choose additional essentials before a session starts. |
+| **Full-screen app blocking** | Get a reminder to return to your session when you open an app outside the allowed list. |
+| **Floating countdown** | Drag the timer to a screen edge and reopen Stayput with a tap. |
+| **A little more time** | Hold for three seconds to add 15 minutes, or activate the control to confirm an extension. |
+| **Recurring routines** | Schedule focus by name, local time, weekdays, duration, and a separate set of essential apps. |
+| **Focus tower and history** | Track daily tower floors, streaks, total focus time, 7/30-day charts, and recent sessions. |
+| **Soundscapes** | Choose quiet, soft rain, ocean waves, white noise, or distant-city audio. |
+| **Optional Do Not Disturb** | Enable priority-only interruptions during a session and restore the previous mode afterward. |
+| **Escape Keys** | End a session early with one of three starter demo keys, with free demo refills in the app. |
+| **Accessible controls** | Use labeled fields, keyboard and accessibility actions, enlarged text, and Android's reduced-motion setting. |
+| **Optional Nothing Glyph** | Show face-down countdown progress on compatible Nothing phones with the required SDK support. |
+
+Automatic apps are marked **Always included** and cannot be unchecked.
+They follow the device's current defaults, while your optional selections stay fixed for the active session.
+Emergency calling remains available.
+
+Early exits record the time you spent focusing but do not earn a tower floor.
+Multiple completed sessions on one day still earn one floor for that day.
+
+Nothing Glyph is experimental and has not been verified on physical Nothing hardware.
+See the [validation report](VALIDATION.md) for tested behavior and platform limits.
+
+## Install and set up
+
+1. Open [Releases](https://github.com/Ausmosphere/Stayput-App/releases), choose the newest build, and download **Stayput.apk** on your Android phone.
+2. Open the APK and allow installation from the app you downloaded it with if Android asks.
+3. In Stayput, tap **One small setup**, or open **Settings → Permissions**.
+4. Enable **Stayput · App blocking** in Android Accessibility settings.
+   If Android restricts this for a sideloaded app, open **App info → Stayput → menu → Allow restricted settings**, then return to Accessibility.
+5. Allow **Display over other apps** for the floating timer.
+6. Choose your extra **Essential apps**, set a duration, and start your first session.
+
+The APKs are signed development builds.
+Updates from this project's builds use the same signing identity, so they can preserve your existing app data.
+
+### Permissions at a glance
+
+| Access | When it is used |
+| --- | --- |
+| **Accessibility app blocking** | Required to identify the foreground app and display the blocking screen. |
+| **Display over other apps** | Required by session setup for the floating countdown. |
+| **Notifications** | Recommended for session status and routine reminders. |
+| **Alarms & reminders** | Recommended for precise scheduled routines; an inexact fallback is available. |
+| **Do Not Disturb** | Optional, requested when you enable the setting. |
+
+If setup reports that the accessibility service is enabled but disconnected, turn Stayput off and on in Android's Accessibility settings.
+This can happen after a force-stop.
+
+## Privacy and control
+
+- **Everything stays on your device.**
+  History, routines, essential apps, and demo keys are stored locally.
+- **No account, analytics, or internet permission.**
+  Stayput's focus features work offline.
+- **No screen content access.**
+  The accessibility service identifies foreground apps and shows the blocking screen; it does not request screen text or record your actions.
+- **No contact, location, microphone, or storage permission requests.**
+- **You stay in control.**
+  Android lets you revoke permissions, force-stop Stayput, or uninstall it.
+
+Clearing app storage or uninstalling removes your local history, routines, and settings.
+Android backup is disabled.
+
+## Build from source
+
+Stayput uses **Java and Android framework views**, with **Gradle 8.11.1** and **Android Gradle Plugin 8.9.2**.
+Its package name is `app.stayput`, minimum SDK is 26, and compile/target SDK is 35.
+
+Open the project in Android Studio, install Android SDK Platform 35 and Build Tools 35.0.0, then sync and run the `app` configuration.
+Use JDK 17 or 21.
+
+**Windows PowerShell**
+
+```powershell
+.\gradlew.bat assembleDebug lintDebug
+```
+
+**macOS / Linux**
 
 ```sh
 ./gradlew assembleDebug lintDebug
 ```
 
-The debug APK is at `app/build/outputs/apk/debug/app-debug.apk`. Release signing is intentionally left to the application owner; do not distribute the debug signing key as a production key.
+The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+Android Studio creates the ignored `local.properties` SDK configuration, or you can set `ANDROID_HOME`.
 
-`local.properties` is local to the build machine and excluded from the source archive. Android Studio creates it automatically, or set `ANDROID_HOME` to your SDK installation.
-
-## Automatic Android downloads
+### Automatic GitHub builds
 
 Every push to `main`, including a merged pull request, runs the [Android build workflow](https://github.com/Ausmosphere/Stayput-App/actions/workflows/android-build.yml).
-After the core checks, debug build, lint, and APK signature verification pass, it publishes a separate [GitHub prerelease](https://github.com/Ausmosphere/Stayput-App/releases) containing `Stayput.apk`, `SHA256SUMS.txt`, and the source commit/build details.
-Open the newest build and download `Stayput.apk` to install it on an Android phone.
-The workflow can also be started manually from the Actions tab with `main` selected.
+It runs the core checks and lint, builds the APK, verifies its signing certificate, and publishes a GitHub prerelease with:
 
-These are development APKs, signed with the same development key as the current local phone installation so subsequent updates can preserve app data.
-The key is stored only in the repository's `ANDROID_DEBUG_KEYSTORE_BASE64` Actions secret and restored temporarily during the build; it is never included in downloads or source control.
-Keep this secret unchanged between builds, because Android requires matching signatures for updates.
-A production store release requires a separate production signing setup.
-APK workflow artifacts are retained for 30 days, while the published release downloads remain available until the release is deleted.
+- `Stayput.apk`
+- `SHA256SUMS.txt`
+- `build-info.txt` containing the source commit and workflow run
 
-## Install and set up
+You can also start the workflow manually from the Actions tab with `main` selected.
+Workflow APK artifacts are kept for 30 days; release downloads stay available until the release is deleted.
 
-1. Install the debug APK on your Android phone. Android may ask you to allow installation from the app opening the APK.
-2. In Stayput, open **One small setup** or **Settings → Permissions**.
-3. Enable **Stayput · App blocking** in Android Accessibility settings. The consent dialog explains that only foreground package names are inspected. No screen text or actions are read or recorded.
-4. On Android versions that restrict accessibility for sideloaded apps, open Android **App info → Stayput → menu → Allow restricted settings**, then return to Accessibility. This is Android's explicit user-controlled setting.
-5. Allow **Display over other apps** for the floating timer. The full-screen blocking view uses the accessibility overlay; the restricted full-screen call/alarm permission is unnecessary.
-6. Allow notifications for session status. For precise routines, grant Alarms & reminders. Consider unrestricted battery use on phones that aggressively stop background apps. These three permissions are recommended rather than prerequisites for a manual session.
-7. Choose **Essential apps**, save the apps you need, select a duration, and start a session.
+The development keystore is supplied through the repository's `ANDROID_DEBUG_KEYSTORE_BASE64` Actions secret.
+The workflow restores it temporarily and removes it after building.
+Keep the signing identity consistent for compatible updates.
+A production store release needs a separate production signing setup.
 
-If Android has left the accessibility service enabled but disconnected (for example after force-stop), Stayput shows this in setup and prevents a new session. Turn its accessibility switch off and on to reconnect. The app checks both the permission and the live service connection.
+### Validation
 
-Do Not Disturb access is requested only when enabling that option. Stayput does not request Usage Access, contact access, location, microphone, or storage access.
+The latest local validation passed **17 core checks**, **95 device checks**, and **96 device checks at 200% text size with reduced motion**, with **zero Android lint errors or warnings**.
+See [VALIDATION.md](VALIDATION.md) for the test environment, evidence, and remaining hardware checks.
 
-## Validation
+Use Git Bash for the shell scripts below when working on Windows.
 
-Pure clock, scoring and recurrence checks, including clock changes and daylight-saving transitions:
+Run the clock, streak, recurrence, and daylight-saving checks with:
 
 ```sh
 sh tools/test-core.sh
 ```
 
-The device integration runner uses a disposable emulator with Accessibility, overlay, and notification permissions granted. It temporarily replaces and then restores local preferences, starts real services and activities, verifies an allowed app stays usable, verifies another app gets the full-screen block, checks key consumption and completion cleanup, and captures screenshots.
+Run device checks on a **disposable emulator**:
 
 ```sh
 ./gradlew assembleDebug assembleDebugAndroidTest
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-# Grant the app's setup permissions in Android settings first.
-adb shell am instrument -w app.stayput.test/app.stayput.SmokeInstrumentation
-adb pull /sdcard/Android/data/app.stayput/files/screenshots
+ANDROID_SERIAL=emulator-5554 sh tools/test-device.sh
 ```
 
-## Platform limits and MVP scope
+The device runner grants blocking permissions and temporarily replaces app preferences for testing.
+It refuses to run against a physical phone.
+Results and screenshots are written under the ignored `artifacts/` directory.
 
-- This is a self-control app, not a device-owner or parental-management application. The device owner can revoke permissions, force-stop or uninstall it, or use safe mode. It does not claim to make bypass impossible.
-- Session time uses monotonic elapsed time while the device is running and a saved wall-clock deadline after reboot. A device reboot plus a clock change can affect the fallback. Routines follow the device's current local timezone.
-- Android and some manufacturers can delay inexact alarms or stop background work. If Android refuses a routine's background foreground-service launch, Stayput posts a reminder when notifications are allowed. Real-device validation on the intended manufacturers is needed before production.
-- The floating timer may be hidden by Android on secure screens or by apps that disallow overlays.
-- Nothing Glyph is optional and hardware-dependent. The official SDK requires compatible Nothing hardware and OS. The included manifest uses its documented `test` key; older Nothing OS versions may need Glyph developer mode for this debug build, or a production key supplied with `-PglyphApiKey=YOUR_KEY`. Newer Nothing OS key rules depend on the installed version. Glyph has not been verified on physical hardware. Failures do not affect normal sessions.
-- Ambient audio mixes with other media at a low volume; no cloud audio is streamed. Text is English-only for this MVP.
-- No purchase flow, account, cloud synchronization, widget, or remote service is included. Clearing app storage or uninstalling removes local history and routines. Backup is disabled.
+<details>
+<summary>Project structure</summary>
 
-## Project layout
+| File | Responsibility |
+| --- | --- |
+| [MainActivity.java](app/src/main/java/app/stayput/MainActivity.java) | Screens, app selection, dialogs, and setup. |
+| [AutomaticApps.java](app/src/main/java/app/stayput/AutomaticApps.java) | Device-default Phone, Messages, and keyboard discovery. |
+| [Store.java](app/src/main/java/app/stayput/Store.java) | Session, routine, history, and whitelist persistence. |
+| [BlockService.java](app/src/main/java/app/stayput/BlockService.java) | Foreground timer, audio, Do Not Disturb, and floating overlay. |
+| [FocusAccessibilityService.java](app/src/main/java/app/stayput/FocusAccessibilityService.java) | Foreground-app checks and the blocking screen. |
+| [RoutineReceiver.java](app/src/main/java/app/stayput/RoutineReceiver.java) | Routine scheduling and session launch. |
+| [FocusMath.java](app/src/main/java/app/stayput/FocusMath.java) | Clock, streak, and recurrence rules. |
+| [GlyphBridge.java](app/src/main/java/app/stayput/GlyphBridge.java) | Optional Nothing hardware integration. |
+| [tools/generate_audio.py](tools/generate_audio.py) | Regeneration of the project's original audio assets. |
 
-`MainActivity` builds the screens, dialogs, and permission setup; `Store` persists session/routine/history state; `BlockService` owns the foreground timer, audio, Do Not Disturb, and floating overlay; `FocusAccessibilityService` enforces the allowed-app list using package-name events; `RoutineReceiver` schedules and launches routines; `GlyphBridge` isolates the optional vendor integration; `FocusMath` contains testable time and streak rules. `tools/generate_audio.py` regenerates the included original WAV assets (requires NumPy).
+</details>
 
-## Third-party component
+## Current scope
 
-`app/libs/glyph-matrix-sdk-2.0.aar` is Nothing's official Glyph SDK, obtained from [Nothing-Developer-Programme/Glyph-Developer-Kit](https://github.com/Nothing-Developer-Programme/Glyph-Developer-Kit) at commit `8ee807a9312a640b0d43051450924e3446bc1d78`. Its minimum SDK is overridden only because the optional integration is guarded at runtime behind Android 14 and supported-hardware checks. All other application code and audio were created for Stayput; Blockit's assets, sounds, and source code were not used.
+Stayput is designed for voluntary focus.
+Android's owner controls, safe mode, and permission settings remain available.
+
+Scheduled sessions depend on Android's alarm and background-execution rules.
+Some manufacturers may delay them, and secure screens or other apps can hide overlays.
+The app uses the device's local timezone for routines.
+
+The interface is currently English-only.
+Cloud synchronization, home screen widgets, and a purchase flow are outside the current build.
+
+## Credits
+
+The optional Glyph integration uses [Nothing's official Glyph SDK](https://github.com/Nothing-Developer-Programme/Glyph-Developer-Kit) at commit `8ee807a9312a640b0d43051450924e3446bc1d78`.
+The vendor API is guarded behind Android 14 and compatible-hardware checks.
+Stayput's audio assets were synthesized for this project.
+
+The banner is generated artwork; the screenshots are unmodified captures from the running app.
