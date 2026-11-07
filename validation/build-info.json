@@ -1,0 +1,30 @@
+{
+  "app": "Stayput",
+  "version": "0.1.0",
+  "package": "app.stayput",
+  "minimum_android": "8.0 (API 26)",
+  "target_api": 35,
+  "artifact": "Stayput.apk",
+  "build": "debug",
+  "sha256": "09b9cc47404ced20c502b5e6ddc30b980ff4a92fc66c7b741a8f92a8f09a61eb",
+  "validation": {
+    "core_checks": 17,
+    "device_checks": 21,
+    "device": "Android 9 / API 28 AOSP emulator",
+    "lint_errors": 0,
+    "lint_warnings": 17,
+    "signature": "verified, debug v2"
+  },
+  "mocked": [
+    "Escape Key balance and refills"
+  ],
+  "not_included": [
+    "Home screen widget",
+    "Cloud backup"
+  ],
+  "requires_physical_testing": [
+    "Nothing Glyph",
+    "Android 15 DND and routine background behavior",
+    "OEM battery restrictions"
+  ]
+}

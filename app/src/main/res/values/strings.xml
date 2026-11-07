@@ -1,0 +1,3 @@
+<resources>
+    <string name="accessibility_description">Stayput detects the package name of the app you open during a focus session and shows a full-screen block if it is not in your allowed apps. It does not read screen text, record actions, or send data anywhere. It does nothing outside a session. Enable only if you agree to this app-blocking use.</string>
+</resources>

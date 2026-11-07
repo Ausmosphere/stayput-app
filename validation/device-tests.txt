@@ -1,0 +1,66 @@
+
+PASS Blocking and overlay permissions granted
+
+PASS Accessibility service connected
+
+PASS Session readiness requires a live blocking service
+
+PASS Session starts
+
+PASS Overlapping sessions rejected
+
+PASS Active whitelist is a stable snapshot
+
+PASS Extension adds exactly fifteen minutes
+
+PASS Empty key balance cannot end session
+
+PASS Whitelisted Settings remains usable
+
+PASS A non-whitelisted app is installed
+
+PASS Non-whitelisted app receives full-screen block
+
+PASS Escape Key ends active session
+
+PASS Exactly one key consumed
+
+PASS Block overlay removed after early exit
+
+PASS Early exit recorded once without tower credit
+
+PASS Early exit does not earn a floor
+
+PASS Duplicate finish is idempotent
+
+PASS Timer expiry completes session automatically
+
+PASS Completion persisted
+
+PASS Completed session earns one floor
+
+PASS Multiple sessions on one day still earn one floor
+PASS Blocking and overlay permissions granted
+PASS Accessibility service connected
+PASS Session readiness requires a live blocking service
+PASS Session starts
+PASS Overlapping sessions rejected
+PASS Active whitelist is a stable snapshot
+PASS Extension adds exactly fifteen minutes
+PASS Empty key balance cannot end session
+PASS Whitelisted Settings remains usable
+PASS A non-whitelisted app is installed
+PASS Non-whitelisted app receives full-screen block
+PASS Escape Key ends active session
+PASS Exactly one key consumed
+PASS Block overlay removed after early exit
+PASS Early exit recorded once without tower credit
+PASS Early exit does not earn a floor
+PASS Duplicate finish is idempotent
+PASS Timer expiry completes session automatically
+PASS Completion persisted
+PASS Completed session earns one floor
+PASS Multiple sessions on one day still earn one floor
+
+PASS: 21 device integration checks
+
