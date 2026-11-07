@@ -34,6 +34,19 @@ The debug APK is at `app/build/outputs/apk/debug/app-debug.apk`. Release signing
 
 `local.properties` is local to the build machine and excluded from the source archive. Android Studio creates it automatically, or set `ANDROID_HOME` to your SDK installation.
 
+## Automatic Android downloads
+
+Every push to `main`, including a merged pull request, runs the [Android build workflow](https://github.com/ausgomez/Stayput-App/actions/workflows/android-build.yml).
+After the core checks, debug build, lint, and APK signature verification pass, it publishes a separate [GitHub prerelease](https://github.com/ausgomez/Stayput-App/releases) containing `Stayput.apk`, `SHA256SUMS.txt`, and the source commit/build details.
+Open the newest build and download `Stayput.apk` to install it on an Android phone.
+The workflow can also be started manually from the Actions tab with `main` selected.
+
+These are development APKs, signed with the same development key as the current local phone installation so subsequent updates can preserve app data.
+The key is stored only in the repository's `ANDROID_DEBUG_KEYSTORE_BASE64` Actions secret and restored temporarily during the build; it is never included in downloads or source control.
+Keep this secret unchanged between builds, because Android requires matching signatures for updates.
+A production store release requires a separate production signing setup.
+APK workflow artifacts are retained for 30 days, while the published release downloads remain available until the release is deleted.
+
 ## Install and set up
 
 1. Install the debug APK on your Android phone. Android may ask you to allow installation from the app opening the APK.
