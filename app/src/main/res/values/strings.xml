@@ -1,4 +1,6 @@
 <resources>
+    <string name="automatic_apps_description">Your default phone, messages and keyboard are always included.</string>
+    <string name="automatic_app_label">%1$s\nAlways included</string>
     <string name="extend_hold">Hold 3 seconds to add 15 min</string>
     <string name="extend_holding">Keep holding…</string>
     <string name="extend_added">15 minutes added ✓</string>

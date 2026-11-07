@@ -253,6 +253,41 @@ final class UiChecks {
     t.shell("input keyevent KEYCODE_BACK");
     click(t, "Save apps");
     t.check(saved.contains("com.android.settings"), "App picker saves the selected app");
+    main(t, () -> screen.chooseApps(Collections.emptySet(), ignored -> {}));
+    t.until(
+        () -> text(t, "Save apps") != null && text(t, "Save apps").isEnabled(),
+        "Automatic app choices finish loading");
+    for (String pkg : AutomaticApps.packages(screen)) {
+      String label =
+          screen
+              .getPackageManager()
+              .getApplicationLabel(screen.getPackageManager().getApplicationInfo(pkg, 0))
+              .toString();
+      setSearch(t, label);
+      t.until(
+          () ->
+              node(
+                      t,
+                      n ->
+                          (label + ". Always included.")
+                              .contentEquals(
+                                  n.getContentDescription() == null
+                                      ? ""
+                                      : n.getContentDescription()))
+                  != null,
+          "Automatic app is visible in picker: " + label);
+      AccessibilityNodeInfo required =
+          node(
+              t,
+              n ->
+                  (label + ". Always included.")
+                      .contentEquals(
+                          n.getContentDescription() == null ? "" : n.getContentDescription()));
+      t.check(
+          required.isChecked() && !required.isEnabled(),
+          "Automatic app is checked and cannot be removed: " + label);
+    }
+    click(t, "Cancel");
   }
 
   static void active(SmokeInstrumentation t, MainActivity screen) throws Exception {

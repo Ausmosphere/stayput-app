@@ -7,7 +7,6 @@ import android.graphics.Typeface;
 import android.telecom.TelecomManager;
 import android.view.*;
 import android.view.accessibility.AccessibilityEvent;
-import android.view.inputmethod.*;
 import android.widget.*;
 import java.lang.ref.WeakReference;
 import java.util.*;
@@ -19,7 +18,6 @@ public class FocusAccessibilityService extends AccessibilityService {
   private WindowManager manager;
   private View shield;
   private TextView remaining;
-  private final Set<String> keyboards = new HashSet<>();
   private String lastPackage = "";
 
   static FocusAccessibilityService getConnected() {
@@ -35,9 +33,6 @@ public class FocusAccessibilityService extends AccessibilityService {
   protected void onServiceConnected() {
     connectedService = new WeakReference<>(this);
     manager = getSystemService(WindowManager.class);
-    InputMethodManager im = getSystemService(InputMethodManager.class);
-    for (InputMethodInfo input : im.getEnabledInputMethodList())
-      keyboards.add(input.getPackageName());
     Store.changed(this);
   }
 
@@ -49,7 +44,7 @@ public class FocusAccessibilityService extends AccessibilityService {
     String pkg = name.toString();
     if (pkg.equals(getPackageName())
         || pkg.equals("com.android.systemui")
-        || keyboards.contains(pkg)) return;
+        || isKeyboardWindow(e, pkg)) return;
     lastPackage = pkg;
     if (!Store.active(this) || Store.remaining(this) <= 0) {
       hideShield();
@@ -59,13 +54,23 @@ public class FocusAccessibilityService extends AccessibilityService {
     else showShield();
   }
 
+  private boolean isKeyboardWindow(AccessibilityEvent event, String pkg) {
+    if (!pkg.equals(AutomaticApps.keyboardPackage(this))) return false;
+    // Typing must not dismiss a shield over the underlying blocked app.
+    // A keyboard's own settings activity is a normal automatically allowed app window.
+    CharSequence windowClass = event.getClassName();
+    if (windowClass != null)
+      try {
+        getPackageManager().getActivityInfo(new ComponentName(pkg, windowClass.toString()), 0);
+        return false;
+      } catch (android.content.pm.PackageManager.NameNotFoundException ignored) {
+      }
+    return true;
+  }
+
   private boolean isAllowed(String pkg) {
     if (Store.sessionAllowed(this).contains(pkg)) return true;
-    TelecomManager telecom = getSystemService(TelecomManager.class);
-    String dialer = telecom.getDefaultDialerPackage();
-    return pkg.equals(dialer)
-        || pkg.equals("com.android.server.telecom")
-        || pkg.equals("com.android.emergency");
+    return pkg.equals("com.android.server.telecom") || pkg.equals("com.android.emergency");
   }
 
   public void refresh() {

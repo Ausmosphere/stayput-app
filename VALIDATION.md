@@ -6,14 +6,18 @@ Validated on 7 November 2026.
 - Android lint: zero errors and zero warnings.
 - APK signature verifies with Android apksigner (debug v2 signature).
 - 17 standalone clock, countdown, streak, weekday recurrence, and daylight-saving checks pass.
-- 70 device integration checks pass on an Android 15 / API 35 Google APIs emulator, including real accessibility overlays, a whitelisted Settings app, accessibility-service reconnection, asynchronous persistence, and atomic early-exit state.
-- UI checks also passed at 200% font size with reduced motion, covering keyboard and accessibility navigation, duration controls, labeled fields, unsaved drafts, app selection, and keyboard-safe save controls.
-- The updated debug APK was installed and visually checked on a Pixel 9 Pro XL running Android 17 / API 37, with existing preferences preserved.
+- 95 device integration checks pass on an Android 15 / API 35 Google APIs emulator, including real accessibility overlays, automatically allowed communication apps, accessibility-service reconnection, asynchronous persistence, and atomic early-exit state.
+- 96 checks pass at 200% font size with reduced motion, covering keyboard and accessibility navigation, duration controls, labeled fields, unsaved drafts, app selection, and keyboard-safe save controls.
+- Default Phone, Messages, and Gboard settings remain usable without manual selection, automatic entries cannot be unchecked, and a keyboard popup cannot uncover an unrelated blocked app.
+- The earlier UI/lint revision was installed and visually checked on a Pixel 9 Pro XL running Android 17 / API 37, with existing preferences preserved.
+  The automatic-whitelist change has been verified on the emulator; the physical phone was disconnected during this change.
 - Captured and visually reviewed the focus screen, active session, permissions, routines, tower, settings, full-screen app block, and floating timer over Android Settings.
 
 The device checks cover: permission availability; actual accessibility-service connection; session readiness; session start; overlapping-session rejection; immutable active whitelist; fifteen-minute extension; exhausted demo keys; allowed-app access; non-allowed-app blocking; early exit; exact key consumption; overlay removal; early-exit persistence without tower credit; idempotent finish; automatic timer completion; completion persistence; one floor per completed day; and avoiding duplicate floors for multiple sessions on a day.
 
-Instrumentation itself force-stops its target package and leaves Android's prior accessibility binding dead. The disposable-emulator fixture explicitly reconnects that binding before testing. Normal application onboarding also detects a disconnected service and requires reconnection rather than claiming blocking is ready.
+Instrumentation itself force-stops its target package and leaves Android's prior accessibility binding dead.
+The disposable-emulator fixture waits for Android to apply the disabled accessibility state before reconnecting that binding, avoiding a race between the two switch changes.
+Normal application onboarding also detects a disconnected service and requires reconnection rather than claiming blocking is ready.
 
 The Android 15 checks used a hardware-accelerated emulator on Windows.
 The Pixel check covered the UI and installation; OEM background restrictions, routine/DND behavior, and vendor-specific settings still need dedicated physical-device testing.

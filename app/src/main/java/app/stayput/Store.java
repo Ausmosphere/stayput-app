@@ -37,15 +37,15 @@ public final class Store {
   }
 
   public static Set<String> allowed(Context c) {
-    return new HashSet<>(p(c).getStringSet("allowed", Collections.emptySet()));
+    return AutomaticApps.include(c, p(c).getStringSet("allowed", Collections.emptySet()));
   }
 
   public static Set<String> sessionAllowed(Context c) {
-    return new HashSet<>(p(c).getStringSet("session_allowed", Collections.emptySet()));
+    return AutomaticApps.include(c, p(c).getStringSet("session_allowed", Collections.emptySet()));
   }
 
   public static void allowed(Context c, Set<String> apps) {
-    p(c).edit().putStringSet("allowed", new HashSet<>(apps)).apply();
+    p(c).edit().putStringSet("allowed", AutomaticApps.optional(c, apps)).apply();
   }
 
   public static boolean active(Context c) {
@@ -75,7 +75,7 @@ public final class Store {
         .putLong("end", System.currentTimeMillis() + duration)
         .putLong("elapsed_end", SystemClock.elapsedRealtime() + duration)
         .putInt("boot", boot(c))
-        .putStringSet("session_allowed", new HashSet<>(apps))
+        .putStringSet("session_allowed", AutomaticApps.optional(c, apps))
         .putString("session_label", label)
         .apply();
     return true;

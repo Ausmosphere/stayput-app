@@ -368,7 +368,7 @@ public class MainActivity extends Activity {
     c.addView(row);
     Ui.gap(c, 12);
     if (apps.isEmpty())
-      c.addView(Ui.text(this, "Just phone calls. Add what you really need.", 11, Ui.MUTED));
+      c.addView(Ui.text(this, "Add any other apps you need during focus.", 11, Ui.MUTED));
     else {
       LinearLayout icons = Ui.row(this);
       for (String pkg : apps) {
@@ -383,15 +383,20 @@ public class MainActivity extends Activity {
         } catch (Exception ignored) {
         }
       }
-      icons.addView(Ui.text(this, "+ phone calls", 11, Ui.MUTED));
       HorizontalScrollView s = new HorizontalScrollView(this);
       s.setHorizontalScrollBarEnabled(false);
       s.addView(icons);
       c.addView(s);
     }
+    Ui.gap(c, 10);
+    c.addView(Ui.text(this, getString(R.string.automatic_apps_description), 11, Ui.MUTED));
     if (editable) {
       Ui.action(
-          c, "Edit essential apps. " + apps.size() + " selected. Phone calls are always allowed.");
+          c,
+          "Edit essential apps. "
+              + apps.size()
+              + " included. "
+              + getString(R.string.automatic_apps_description));
       c.setOnClickListener(
           v ->
               chooseApps(
@@ -779,6 +784,7 @@ public class MainActivity extends Activity {
     JSONArray a = existing != null ? existing.optJSONArray("apps") : null;
     if (a != null) for (int j = 0; j < a.length(); j++) apps.add(a.optString(j));
     else apps.addAll(Store.allowed(this));
+    apps.addAll(AutomaticApps.packages(this));
     TextView appsButton =
         Ui.button(
             this,
@@ -853,7 +859,7 @@ public class MainActivity extends Activity {
                             .put("minute", time.getMinute())
                             .put("duration", picker.getValue() * 5)
                             .put("days", new JSONArray(new TreeSet<>(selectedDays)))
-                            .put("apps", new JSONArray(apps))
+                            .put("apps", new JSONArray(AutomaticApps.optional(this, apps)))
                             .put(
                                 "enabled",
                                 existing == null || existing.optBoolean("enabled", true));
@@ -1369,11 +1375,19 @@ public class MainActivity extends Activity {
       packageName = info.activityInfo.packageName;
       icon = info.loadIcon(packages);
     }
+
+    AppChoice(ApplicationInfo info, PackageManager packages) {
+      label = info.loadLabel(packages).toString();
+      packageName = info.packageName;
+      icon = info.loadIcon(packages);
+    }
   }
 
   void chooseApps(Set<String> initial, Consumer<Set<String>> save) {
+    Set<String> automatic = AutomaticApps.packages(this);
     Set<String> original = new HashSet<>(initial);
-    Set<String> picked = new HashSet<>(initial);
+    original.addAll(automatic);
+    Set<String> picked = new HashSet<>(original);
     Dialog dialog = new Dialog(this);
     dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
     LinearLayout form = Ui.col(this);
@@ -1392,7 +1406,8 @@ public class MainActivity extends Activity {
     introduction.addView(
         Ui.text(
             this,
-            "Only these apps stay available during focus. Phone calls are always allowed.",
+            getString(R.string.automatic_apps_description)
+                + " Add any other apps you need during focus.",
             12,
             Ui.MUTED));
     Ui.gap(introduction, 16);
@@ -1469,6 +1484,14 @@ public class MainActivity extends Activity {
                   }
                 }
               }
+              for (String pkg : automatic) {
+                if (unique.containsKey(pkg)) continue;
+                try {
+                  unique.put(pkg, new AppChoice(packages.getApplicationInfo(pkg, 0), packages));
+                } catch (PackageManager.NameNotFoundException ignored) {
+                  // A selected keyboard can disappear while the app list loads.
+                }
+              }
               ArrayList<AppChoice> all = new ArrayList<>(unique.values());
               java.text.Collator collator = java.text.Collator.getInstance();
               all.sort((a, b) -> collator.compare(a.label, b.label));
@@ -1488,6 +1511,16 @@ public class MainActivity extends Activity {
 
                           public long getItemId(int i) {
                             return i;
+                          }
+
+                          @Override
+                          public boolean areAllItemsEnabled() {
+                            return false;
+                          }
+
+                          @Override
+                          public boolean isEnabled(int i) {
+                            return !automatic.contains(filtered.get(i).packageName);
                           }
 
                           public View getView(int i, View recycled, ViewGroup parent) {
@@ -1520,11 +1553,18 @@ public class MainActivity extends Activity {
                             choice.icon.setBounds(
                                 0, 0, Ui.dp(MainActivity.this, 36), Ui.dp(MainActivity.this, 36));
                             row.setCompoundDrawablesRelative(choice.icon, null, null, null);
-                            row.setText(choice.label);
-                            row.setContentDescription(choice.label);
+                            boolean required = automatic.contains(choice.packageName);
+                            row.setText(
+                                required
+                                    ? getString(R.string.automatic_app_label, choice.label)
+                                    : choice.label);
+                            row.setContentDescription(
+                                required ? choice.label + ". Always included." : choice.label);
+                            row.setEnabled(!required);
                             row.setChecked(picked.contains(choice.packageName));
                             row.setOnClickListener(
                                 v -> {
+                                  if (required) return;
                                   if (!picked.remove(choice.packageName))
                                     picked.add(choice.packageName);
                                   row.setChecked(picked.contains(choice.packageName));

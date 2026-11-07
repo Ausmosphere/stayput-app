@@ -9,7 +9,9 @@ See the [validation report](VALIDATION.md) for tested behavior and known platfor
 ## Included
 
 - Focus dial, 5–180 minute sessions, duration presets, full-screen accessibility block.
-- Searchable installed-app whitelist, snapshotted for each session; phone and emergency calling remain available.
+- Searchable installed-app whitelist, with optional selections snapshotted for each session.
+  The device's default Phone, Messages, and keyboard app (including Gboard when selected) are always included automatically, including in existing routines.
+  These entries are labeled **Always included** in the app picker and follow changes to the device defaults; emergency calling remains available.
 - Foreground countdown and draggable floating timer that snaps to the edge and remembers its position.
 - Deliberate three-second hold to add fifteen minutes to a running session, with a confirmation dialog available through a tap, keyboard, or accessibility action.
 - Escape Keys: three local demo keys initially, one consumed per early exit, with an explicitly labeled free demo refill. No billing.

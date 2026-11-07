@@ -67,6 +67,19 @@ public class SmokeInstrumentation extends Instrumentation {
       // Instrumentation force-stops the target package, which leaves Android's old binding dead.
       // Reconnect the enabled service on this disposable emulator before testing the real flow.
       shell("settings put secure enabled_accessibility_services ''");
+      android.view.accessibility.AccessibilityManager accessibility =
+          c.getSystemService(android.view.accessibility.AccessibilityManager.class);
+      until(
+          () ->
+              accessibility
+                  .getEnabledAccessibilityServiceList(
+                      android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+                  .stream()
+                  .noneMatch(
+                      service ->
+                          c.getPackageName()
+                              .equals(service.getResolveInfo().serviceInfo.packageName)),
+          "Android applies accessibility disable before reconnection");
       shell(
           "settings put secure enabled_accessibility_services"
               + " app.stayput/app.stayput.FocusAccessibilityService");
@@ -117,8 +130,8 @@ public class SmokeInstrumentation extends Instrumentation {
       check(!Store.begin(c, 60, set(), "Duplicate"), "Overlapping sessions rejected");
       Store.allowed(c, set("com.android.contacts"));
       check(
-          Store.sessionAllowed(c).equals(set("com.android.settings")),
-          "Active whitelist is a stable snapshot");
+          Store.sessionAllowed(c).equals(AutomaticApps.include(c, set("com.android.settings"))),
+          "Active optional whitelist is a stable snapshot with automatic essentials");
       long before = Store.remaining(c);
       Store.extend(c);
       check(
@@ -156,6 +169,82 @@ public class SmokeInstrumentation extends Instrumentation {
           () -> FocusAccessibilityService.getConnected().isBlockingVisible(),
           "Non-whitelisted app receives full-screen block");
       capture("03-blocked-app");
+      android.content.ComponentName keyboard =
+          android.content.ComponentName.unflattenFromString(
+              android.provider.Settings.Secure.getString(
+                  c.getContentResolver(), android.provider.Settings.Secure.DEFAULT_INPUT_METHOD));
+      check(keyboard != null, "Default keyboard is detected");
+      runOnMainSync(
+          () -> {
+            android.view.accessibility.AccessibilityEvent ime =
+                android.view.accessibility.AccessibilityEvent.obtain(
+                    android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED);
+            ime.setPackageName(keyboard.getPackageName());
+            ime.setClassName("android.inputmethodservice.SoftInputWindow");
+            FocusAccessibilityService.getConnected().onAccessibilityEvent(ime);
+            ime.recycle();
+          });
+      check(
+          FocusAccessibilityService.getConnected().isBlockingVisible(),
+          "Keyboard popup cannot uncover a blocked app");
+      String sms = android.provider.Telephony.Sms.getDefaultSmsPackage(c);
+      check(sms != null, "Default messaging app is detected");
+      Intent messages = c.getPackageManager().getLaunchIntentForPackage(sms);
+      check(messages != null, "Default messaging app can be opened");
+      c.startActivity(messages.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+      capture("automatic-messages");
+      check(
+          !FocusAccessibilityService.getConnected().isBlockingVisible(),
+          "Default messaging app is automatically available during focus");
+      String phone =
+          c.getSystemService(android.telecom.TelecomManager.class).getDefaultDialerPackage();
+      Set<String> required = set(sms, phone, keyboard.getPackageName());
+      check(
+          Store.allowed(c).containsAll(required),
+          "Communication apps are automatically whitelisted");
+      check(
+          Store.sessionAllowed(c).containsAll(required),
+          "Active sessions include communication apps");
+      Store.allowed(c, set());
+      check(
+          Store.allowed(c).containsAll(required),
+          "Clearing optional apps preserves automatic apps");
+      Intent dial =
+          new Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:"))
+              .setPackage(phone)
+              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      c.startActivity(dial);
+      capture("automatic-phone");
+      check(
+          !FocusAccessibilityService.getConnected().isBlockingVisible(),
+          "Default phone app stays usable without a manual selection");
+      c.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+      until(
+          () -> FocusAccessibilityService.getConnected().isBlockingVisible(),
+          "Other apps remain blocked after opening Phone");
+      Intent keyboardSettings =
+          c.getPackageManager().getLaunchIntentForPackage(keyboard.getPackageName());
+      if (keyboardSettings == null) {
+        for (android.view.inputmethod.InputMethodInfo input :
+            c.getSystemService(android.view.inputmethod.InputMethodManager.class)
+                .getEnabledInputMethodList()) {
+          if (input.getPackageName().equals(keyboard.getPackageName())
+              && input.getSettingsActivity() != null) {
+            keyboardSettings =
+                new Intent(Intent.ACTION_MAIN)
+                    .setComponent(
+                        new android.content.ComponentName(
+                            input.getPackageName(), input.getSettingsActivity()));
+            break;
+          }
+        }
+      }
+      check(keyboardSettings != null, "Default keyboard settings can be opened");
+      c.startActivity(keyboardSettings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+      capture("automatic-keyboard");
+      check(
+          !FocusAccessibilityService.getConnected().isBlockingVisible(),
+          "Default keyboard app stays usable without a manual selection");
       Store.set(c, "keys", 2);
       boolean[] atomicExit = {false};
       android.content.SharedPreferences.OnSharedPreferenceChangeListener exitListener =
