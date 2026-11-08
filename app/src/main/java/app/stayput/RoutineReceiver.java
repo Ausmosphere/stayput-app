@@ -56,7 +56,7 @@ public class RoutineReceiver extends BroadcastReceiver {
           .notify(
               3,
               new Notification.Builder(c, BlockService.ROUTINES)
-                  .setSmallIcon(R.drawable.ic_launcher)
+                  .setSmallIcon(R.drawable.ic_brand_monochrome)
                   .setContentTitle("Stayput · Routine ready")
                   .setContentText(message)
                   .setStyle(new Notification.BigTextStyle().bigText(message))

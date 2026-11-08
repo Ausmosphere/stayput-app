@@ -68,7 +68,7 @@ public class BlockService extends Service {
             ? "Stayput · " + FocusMath.clock(Store.remaining(this))
             : "Stayput · Check blocking permissions";
     return new Notification.Builder(this, CHANNEL)
-        .setSmallIcon(R.drawable.ic_launcher)
+        .setSmallIcon(R.drawable.ic_brand_monochrome)
         .setContentTitle(title)
         .setContentText("Focus session in progress · Tap to return")
         .setContentIntent(pi)
@@ -120,7 +120,7 @@ public class BlockService extends Service {
     pill = new Ui.TappableRow(this);
     Ui.pad(pill, 14, 8, 8);
     Ui.surface(pill, false);
-    pill.addView(Ui.icon(this, "focus", Ui.RED, 19));
+    pill.addView(Ui.brand(this, 22));
     clock = Ui.bold(this, FocusMath.clock(Store.remaining(this)), 15, Ui.WHITE);
     LinearLayout.LayoutParams time = new LinearLayout.LayoutParams(-2, -2);
     time.leftMargin = Ui.dp(this, 8);

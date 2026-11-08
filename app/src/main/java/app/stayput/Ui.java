@@ -285,6 +285,14 @@ public final class Ui {
     }
   }
 
+  public static ImageView brand(Context c, int size) {
+    ImageView v = new ImageView(c);
+    v.setImageResource(R.drawable.ic_brand);
+    v.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    v.setLayoutParams(width(size, size, c));
+    return v;
+  }
+
   public static Icon icon(Context c, String type, int color, int size) {
     Icon v = new Icon(c, type, color);
     v.setLayoutParams(new LinearLayout.LayoutParams(dp(c, size), dp(c, size)));

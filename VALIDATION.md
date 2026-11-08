@@ -12,6 +12,9 @@ Validated on 7 November 2026.
 - The earlier UI/lint revision was installed and visually checked on a Pixel 9 Pro XL running Android 17 / API 37, with existing preferences preserved.
   The automatic-whitelist change has been verified on the emulator; the physical phone was disconnected during this change.
 - Captured and visually reviewed the focus screen, active session, permissions, routines, tower, settings, full-screen app block, and floating timer over Android Settings.
+- The transparent phone-in-hand logo and cancel symbol are shared by every app header, the blocking screen, the floating timer, and the launcher.
+  Notification icons use the same geometry in white, and the adaptive launcher includes a monochrome variant for Android themed icons.
+  The revised artwork builds with zero lint findings and was visually checked on the API 35 emulator.
 
 The device checks cover: permission availability; actual accessibility-service connection; session readiness; session start; overlapping-session rejection; immutable active whitelist; fifteen-minute extension; exhausted demo keys; allowed-app access; non-allowed-app blocking; early exit; exact key consumption; overlay removal; early-exit persistence without tower credit; idempotent finish; automatic timer completion; completion persistence; one floor per completed day; and avoiding duplicate floors for multiple sessions on a day.
 

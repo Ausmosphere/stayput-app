@@ -128,10 +128,7 @@ public class MainActivity extends Activity {
     Ui.insets(root, 0, 0, 0);
     LinearLayout header = Ui.row(this);
     Ui.pad(header, 24, 14, 10);
-    TextView mark = Ui.bold(this, "Ⅱ", 23, Ui.RED);
-    mark.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-    mark.setGravity(Gravity.CENTER);
-    Ui.surface(mark, true);
+    ImageView mark = Ui.brand(this, 42);
     header.addView(mark, Ui.width(42, 42, this));
     TextView name = Ui.bold(this, "stayput", 23, Ui.WHITE);
     LinearLayout.LayoutParams nameP = new LinearLayout.LayoutParams(0, -2, 1);

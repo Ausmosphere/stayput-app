@@ -91,7 +91,7 @@ public class FocusAccessibilityService extends AccessibilityService {
     root.setBackgroundColor(Ui.BG);
     root.setGravity(Gravity.CENTER);
     Ui.pad(root, 28, 48, 40);
-    root.addView(Ui.icon(this, "lock", Ui.RED, 42));
+    root.addView(Ui.brand(this, 42));
     Ui.gap(root, 28);
     TextView eyebrow = Ui.bold(this, "S T A Y  W I T H  I T", 11, Ui.RED);
     eyebrow.setGravity(Gravity.CENTER);

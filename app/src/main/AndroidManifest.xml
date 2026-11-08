@@ -16,7 +16,7 @@
         <intent><action android:name="android.provider.Telephony.SMS_DELIVER" /></intent>
         <intent><action android:name="android.view.InputMethod" /></intent>
     </queries>
-    <application android:allowBackup="false" android:fullBackupContent="false" android:dataExtractionRules="@xml/data_extraction_rules" tools:targetApi="31" android:label="Stayput" android:icon="@drawable/ic_launcher" android:theme="@style/AppTheme" android:supportsRtl="true">
+    <application android:allowBackup="false" android:fullBackupContent="false" android:dataExtractionRules="@xml/data_extraction_rules" tools:targetApi="31" android:label="Stayput" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher" android:theme="@style/AppTheme" android:supportsRtl="true">
         <meta-data android:name="NothingKey" android:value="${glyphApiKey}" />
         <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize">
             <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>

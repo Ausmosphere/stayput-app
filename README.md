@@ -1,6 +1,8 @@
-![Stayput banner: Make room for real life.](docs/assets/stayput-banner.png)
+<img src="docs/assets/stayput-logo.svg" alt="Stayput phone-in-hand logo with a cancel symbol" width="64" height="64">
 
 # Stayput
+
+Stop your phone addiction and stayput.
 
 Stayput helps you step away from distracting apps while keeping your phone useful.
 Choose a focus duration, pick the extra apps you need, and let the rest take a break.
