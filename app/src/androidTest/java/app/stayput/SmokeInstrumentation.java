@@ -192,10 +192,10 @@ public class SmokeInstrumentation extends Instrumentation {
       Intent messages = c.getPackageManager().getLaunchIntentForPackage(sms);
       check(messages != null, "Default messaging app can be opened");
       c.startActivity(messages.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-      capture("automatic-messages");
-      check(
-          !FocusAccessibilityService.getConnected().isBlockingVisible(),
+      until(
+          () -> visibleApp(sms) && !FocusAccessibilityService.getConnected().isBlockingVisible(),
           "Default messaging app is automatically available during focus");
+      capture("automatic-messages");
       String phone =
           c.getSystemService(android.telecom.TelecomManager.class).getDefaultDialerPackage();
       Set<String> required = set(sms, phone, keyboard.getPackageName());
@@ -214,10 +214,10 @@ public class SmokeInstrumentation extends Instrumentation {
               .setPackage(phone)
               .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
       c.startActivity(dial);
-      capture("automatic-phone");
-      check(
-          !FocusAccessibilityService.getConnected().isBlockingVisible(),
+      until(
+          () -> visibleApp(phone) && !FocusAccessibilityService.getConnected().isBlockingVisible(),
           "Default phone app stays usable without a manual selection");
+      capture("automatic-phone");
       c.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
       until(
           () -> FocusAccessibilityService.getConnected().isBlockingVisible(),
@@ -241,10 +241,12 @@ public class SmokeInstrumentation extends Instrumentation {
       }
       check(keyboardSettings != null, "Default keyboard settings can be opened");
       c.startActivity(keyboardSettings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-      capture("automatic-keyboard");
-      check(
-          !FocusAccessibilityService.getConnected().isBlockingVisible(),
+      until(
+          () ->
+              visibleApp(keyboard.getPackageName())
+                  && !FocusAccessibilityService.getConnected().isBlockingVisible(),
           "Default keyboard app stays usable without a manual selection");
+      capture("automatic-keyboard");
       Store.set(c, "keys", 2);
       boolean[] atomicExit = {false};
       android.content.SharedPreferences.OnSharedPreferenceChangeListener exitListener =
@@ -361,6 +363,13 @@ public class SmokeInstrumentation extends Instrumentation {
       // The first asynchronous write may not have created the file yet.
     }
     return values;
+  }
+
+  boolean visibleApp(String packageName) {
+    android.view.accessibility.AccessibilityNodeInfo window =
+        getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
+            .getRootInActiveWindow();
+    return window != null && packageName.contentEquals(window.getPackageName());
   }
 
   void capture(String name) throws Exception {

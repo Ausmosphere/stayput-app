@@ -15,12 +15,14 @@ Validated on 7 November 2026.
 - The transparent phone-in-hand logo and cancel symbol are shared by every app header, the blocking screen, the floating timer, and the launcher.
   Notification icons use the same geometry in white, and the adaptive launcher includes a monochrome variant for Android themed icons.
   The revised artwork builds with zero lint findings and was visually checked on the API 35 emulator.
+- The focus screen uses “Stop your phone addiction. And stayput.”, with matching session, blocking-screen, confirmation, and Settings copy.
 
 The device checks cover: permission availability; actual accessibility-service connection; session readiness; session start; overlapping-session rejection; immutable active whitelist; fifteen-minute extension; exhausted demo keys; allowed-app access; non-allowed-app blocking; early exit; exact key consumption; overlay removal; early-exit persistence without tower credit; idempotent finish; automatic timer completion; completion persistence; one floor per completed day; and avoiding duplicate floors for multiple sessions on a day.
 
 Instrumentation itself force-stops its target package and leaves Android's prior accessibility binding dead.
 The disposable-emulator fixture waits for Android to apply the disabled accessibility state before reconnecting that binding, avoiding a race between the two switch changes.
 Normal application onboarding also detects a disconnected service and requires reconnection rather than claiming blocking is ready.
+Allowed-app checks wait for the requested app to become visible and the blocking screen to disappear, covering cold starts without relying on screenshot delays.
 
 The Android 15 checks used a hardware-accelerated emulator on Windows.
 The Pixel check covered the UI and installation; OEM background restrictions, routine/DND behavior, and vendor-specific settings still need dedicated physical-device testing.

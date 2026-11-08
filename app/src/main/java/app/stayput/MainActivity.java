@@ -219,7 +219,7 @@ public class MainActivity extends Activity {
     Ui.animateIn(content);
   }
 
-  void title(String eyebrow, String heading, String subtitle) {
+  TextView title(String eyebrow, String heading, String subtitle) {
     TextView e = Ui.bold(this, eyebrow, 10, Ui.RED);
     e.setLetterSpacing(.14f);
     content.addView(e);
@@ -236,6 +236,7 @@ public class MainActivity extends Activity {
       content.addView(s);
     }
     Ui.gap(content, 24);
+    return h;
   }
 
   LinearLayout card() {
@@ -258,7 +259,8 @@ public class MainActivity extends Activity {
       activePage();
       return;
     }
-    title("LESS SCROLL. MORE SOUL.", "Make room\nfor real life.", null);
+    title(getString(R.string.brand_eyebrow), getString(R.string.brand_home_heading), null)
+        .setTextSize(30);
     if (!Permissions.ready(this)) {
       LinearLayout banner = Ui.row(this);
       Ui.surface(banner, true);
@@ -413,7 +415,7 @@ public class MainActivity extends Activity {
       return;
     }
     new AlertDialog.Builder(this)
-        .setTitle("A little time for you.")
+        .setTitle(R.string.brand_session_confirm)
         .setMessage(
             "Start a "
                 + minutes
@@ -447,7 +449,7 @@ public class MainActivity extends Activity {
   void activePage() {
     title(
         "SESSION IN PROGRESS",
-        "Stay here.\nBe somewhere else.",
+        getString(R.string.brand_session_heading),
         Store.text(this, "session_label", "Focus session"));
     if (!Permissions.ready(this)) {
       TextView warning =
@@ -466,7 +468,7 @@ public class MainActivity extends Activity {
     dial.countdown(Store.remaining(this), Store.duration(this));
     content.addView(dial, Ui.width(-1, 300, this));
     Ui.gap(content, 12);
-    TextView breathe = Ui.text(this, "Breathe in. Let the noise out.", 13, Ui.MUTED);
+    TextView breathe = Ui.text(this, getString(R.string.brand_session_reminder), 13, Ui.MUTED);
     breathe.setGravity(Gravity.CENTER);
     content.addView(breathe);
     if (Ui.motionEnabled())
@@ -1099,7 +1101,7 @@ public class MainActivity extends Activity {
                 .show());
     Ui.gap(content, 28);
     TextView version =
-        Ui.text(this, "STAYPUT  /  0.1.0\nA little less phone. A little more life.", 11, Ui.MUTED);
+        Ui.text(this, "STAYPUT  /  0.1.0\n" + getString(R.string.brand_tagline), 11, Ui.MUTED);
     version.setGravity(Gravity.CENTER);
     version.setLineSpacing(Ui.dp(this, 8), 1);
     content.addView(version);

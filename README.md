@@ -243,4 +243,4 @@ The optional Glyph integration uses [Nothing's official Glyph SDK](https://githu
 The vendor API is guarded behind Android 14 and compatible-hardware checks.
 Stayput's audio assets were synthesized for this project.
 
-The banner is generated artwork; the screenshots are unmodified captures from the running app.
+The screenshots are unmodified captures from the running app.

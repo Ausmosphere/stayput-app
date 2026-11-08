@@ -1,4 +1,11 @@
 <resources>
+    <string name="brand_tagline">Stop your phone addiction. And stayput.</string>
+    <string name="brand_eyebrow">STOP THE SCROLL.</string>
+    <string name="brand_home_heading">Stop your phone addiction.\nAnd stayput.</string>
+    <string name="brand_session_heading">Put your phone down.\nStayput.</string>
+    <string name="brand_session_reminder">Your essentials are here. The scroll can wait.</string>
+    <string name="brand_blocked_caption">This app can wait.\nYour essential apps are still available.</string>
+    <string name="brand_session_confirm">Ready to stayput?</string>
     <string name="automatic_apps_description">Your default phone, messages and keyboard are always included.</string>
     <string name="automatic_app_label">%1$s\nAlways included</string>
     <string name="extend_hold">Hold 3 seconds to add 15 min</string>

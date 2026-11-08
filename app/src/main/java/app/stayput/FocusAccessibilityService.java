@@ -93,11 +93,12 @@ public class FocusAccessibilityService extends AccessibilityService {
     Ui.pad(root, 28, 48, 40);
     root.addView(Ui.brand(this, 42));
     Ui.gap(root, 28);
-    TextView eyebrow = Ui.bold(this, "S T A Y  W I T H  I T", 11, Ui.RED);
+    TextView eyebrow = Ui.bold(this, getString(R.string.brand_eyebrow), 11, Ui.RED);
+    eyebrow.setLetterSpacing(.14f);
     eyebrow.setGravity(Gravity.CENTER);
     root.addView(eyebrow);
     Ui.gap(root, 18);
-    TextView title = Ui.text(this, "A moment away.\nA little more life.", 32, Ui.WHITE);
+    TextView title = Ui.text(this, getString(R.string.brand_session_heading), 32, Ui.WHITE);
     Ui.heading(title);
     title.setGravity(Gravity.CENTER);
     root.addView(title);
@@ -112,7 +113,7 @@ public class FocusAccessibilityService extends AccessibilityService {
     Ui.gap(root, 36);
     TextView caption =
         Ui.text(
-            this, "This app is taking a break.\nYour essential apps are still here.", 14, Ui.MUTED);
+            this, getString(R.string.brand_blocked_caption), 14, Ui.MUTED);
     caption.setGravity(Gravity.CENTER);
     caption.setLineSpacing(Ui.dp(this, 5), 1);
     root.addView(caption);
