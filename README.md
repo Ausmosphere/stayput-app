@@ -12,7 +12,7 @@ Finish sessions, build a daily streak, and watch your focus tower grow.
 
 **Android 8.0+** · **Native Android** · **Local data** · **No account or subscription**
 
-[**Download the APK**](https://github.com/Ausmosphere/Stayput-App/releases) · [Screenshots](#screenshots) · [Set up Stayput](#install-and-set-up) · [Build from source](#build-from-source)
+[**Download the APK**](https://github.com/ax9-labs/stayput-app/releases) · [Screenshots](#screenshots) · [Set up Stayput](#install-and-set-up) · [Build from source](#build-from-source)
 
 > Stayput is a development preview.
 > Open the newest GitHub prerelease and download **Stayput.apk** to try it.
@@ -105,7 +105,7 @@ See the [validation report](VALIDATION.md) for tested behavior and platform limi
 
 ## Install and set up
 
-1. Open [Releases](https://github.com/Ausmosphere/Stayput-App/releases), choose the newest build, and download **Stayput.apk** on your Android phone.
+1. Open [Releases](https://github.com/ax9-labs/stayput-app/releases), choose the newest build, and download **Stayput.apk** on your Android phone.
 2. Open the APK and allow installation from the app you downloaded it with if Android asks.
 3. In Stayput, tap **One small setup**, or open **Settings → Permissions**.
 4. Enable **Stayput · App blocking** in Android Accessibility settings.
@@ -169,7 +169,7 @@ Android Studio creates the ignored `local.properties` SDK configuration, or you 
 
 ### Automatic GitHub builds
 
-Every push to `main`, including a merged pull request, runs the [Android build workflow](https://github.com/Ausmosphere/Stayput-App/actions/workflows/android-build.yml).
+Every push to `main`, including a merged pull request, runs the [Android build workflow](https://github.com/ax9-labs/stayput-app/actions/workflows/android-build.yml).
 It runs the core checks and lint, builds the APK, verifies its signing certificate, and publishes a GitHub prerelease with:
 
 - `Stayput.apk`
