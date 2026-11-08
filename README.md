@@ -1,4 +1,4 @@
-<img src="docs/assets/stayput-logo.svg" alt="Stayput phone-in-hand logo with a cancel symbol" width="64" height="64">
+<img src="docs/assets/stayput-banner.png" alt="Stayput - Stop your phone addiction and stayput. A Renaissance fresco scene of a man refusing an offered smartphone." width="100%">
 
 # Stayput
 
