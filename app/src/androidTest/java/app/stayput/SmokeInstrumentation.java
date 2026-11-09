@@ -240,6 +240,9 @@ public class SmokeInstrumentation extends Instrumentation {
         }
       }
       check(keyboardSettings != null, "Default keyboard settings can be opened");
+      // The shield can appear before the blocked app finishes opening its windows.
+      getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
+          .waitForIdle(500, 10000);
       c.startActivity(keyboardSettings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
       until(
           () ->

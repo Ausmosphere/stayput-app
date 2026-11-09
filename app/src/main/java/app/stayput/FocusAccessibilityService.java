@@ -132,9 +132,11 @@ public class FocusAccessibilityService extends AccessibilityService {
         icon.setImageDrawable(info.loadIcon(getPackageManager()));
         item.addView(icon, Ui.width(40, 40, this));
         TextView name = Ui.text(this, info.loadLabel(getPackageManager()).toString(), 10, Ui.MUTED);
+        name.setGravity(Gravity.CENTER);
         name.setSingleLine(true);
         name.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        item.addView(name, Ui.width(68, 22, this));
+        name.setMinHeight(Ui.dp(this, 22));
+        item.addView(name, Ui.width(68, -2, this));
         item.setContentDescription("Open " + info.loadLabel(getPackageManager()));
         Ui.action(item, item.getContentDescription().toString());
         item.setOnClickListener(
@@ -153,6 +155,7 @@ public class FocusAccessibilityService extends AccessibilityService {
     }
     if (apps.getChildCount() > 0) {
       HorizontalScrollView scroll = new HorizontalScrollView(this);
+      scroll.setFillViewport(true);
       scroll.setHorizontalScrollBarEnabled(false);
       scroll.addView(apps);
       root.addView(scroll);
