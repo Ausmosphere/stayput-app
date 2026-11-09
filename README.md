@@ -83,6 +83,7 @@ Tap a screenshot to open it at full size.
 | **Automatic essentials** | Keep the device's default Phone, Messages, and keyboard apps available in manual sessions and routines. |
 | **Your own whitelist** | Search installed apps and choose additional essentials before a session starts. |
 | **Full-screen app blocking** | Get a reminder to return to your session when you open an app outside the allowed list. |
+| **Optional scroll check-ins** | After spending a set time in an app you choose, get a full-screen prompt to keep going or start a focus cycle. |
 | **Floating countdown** | Drag the timer to a screen edge and reopen Stayput with a tap. |
 | **A little more time** | Hold for three seconds to add 15 minutes, or activate the control to confirm an extension. |
 | **Recurring routines** | Schedule focus by name, local time, weekdays, duration, and a separate set of essential apps. |
@@ -96,6 +97,10 @@ Tap a screenshot to open it at full size.
 Automatic apps are marked **Always included** and cannot be unchecked.
 They follow the device's current defaults, while your optional selections stay fixed for the active session.
 Emergency calling remains available.
+
+Open the **Check-in** tab, turn on **Show check-ins**, pick the apps you want to watch, and choose how long Stayput should wait before asking.
+The default is 10 minutes in the same app, and leaving the app or locking the phone resets the timer.
+**Keep going** gives you another full interval, and **Start a cycle** uses the duration on your Focus tab.
 
 Early exits record the time you spent focusing but do not earn a tower floor.
 Multiple completed sessions on one day still earn one floor for that day.
@@ -120,7 +125,7 @@ Updates from this project's builds use the same signing identity, so they can pr
 
 | Access | When it is used |
 | --- | --- |
-| **Accessibility app blocking** | Required to identify the foreground app and display the blocking screen. |
+| **Accessibility app blocking** | Identifies the foreground app and displays the blocking screen or optional scroll check-in. |
 | **Display over other apps** | Required by session setup for the floating countdown. |
 | **Notifications** | Recommended for session status and routine reminders. |
 | **Alarms & reminders** | Recommended for precise scheduled routines; an inexact fallback is available. |
@@ -132,11 +137,11 @@ This can happen after a force-stop.
 ## Privacy and control
 
 - **Everything stays on your device.**
-  History, routines, essential apps, and demo keys are stored locally.
+  History, routines, app lists, check-in settings, and demo keys are stored locally.
 - **No account, analytics, or internet permission.**
   Stayput's focus features work offline.
 - **No screen content access.**
-  The accessibility service identifies foreground apps and shows the blocking screen; it does not request screen text or record your actions.
+  The accessibility service identifies foreground apps for blocking and check-ins without requesting screen text or recording your actions.
 - **No contact, location, microphone, or storage permission requests.**
 - **You stay in control.**
   Android lets you revoke permissions, force-stop Stayput, or uninstall it.

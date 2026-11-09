@@ -19,6 +19,7 @@ public class FocusAccessibilityService extends AccessibilityService {
   private View shield;
   private TextView remaining;
   private String lastPackage = "";
+  private ScrollCheckIn checkIn;
 
   static FocusAccessibilityService getConnected() {
     return connectedService.get();
@@ -33,6 +34,7 @@ public class FocusAccessibilityService extends AccessibilityService {
   protected void onServiceConnected() {
     connectedService = new WeakReference<>(this);
     manager = getSystemService(WindowManager.class);
+    if (checkIn == null) checkIn = new ScrollCheckIn(this);
     Store.changed(this);
   }
 
@@ -46,6 +48,7 @@ public class FocusAccessibilityService extends AccessibilityService {
         || pkg.equals("com.android.systemui")
         || isKeyboardWindow(e, pkg)) return;
     lastPackage = pkg;
+    if (checkIn != null) checkIn.foregroundChanged(pkg);
     if (!Store.active(this) || Store.remaining(this) <= 0) {
       hideShield();
       return;
@@ -79,6 +82,11 @@ public class FocusAccessibilityService extends AccessibilityService {
       return;
     }
     if (remaining != null) remaining.setText(FocusMath.clock(Store.remaining(this)));
+  }
+
+  int onStayputOpened() {
+    hideShield();
+    return checkIn == null ? 0 : checkIn.onStayputOpened();
   }
 
   boolean isBlockingVisible() {
@@ -193,11 +201,15 @@ public class FocusAccessibilityService extends AccessibilityService {
           }
         });
     root.addView(emergency);
+    shield = showOverlay(root);
+    if (shield == null) remaining = null;
+  }
+
+  View showOverlay(LinearLayout root) {
     ScrollView scroll = new ScrollView(this);
     scroll.setFillViewport(true);
     scroll.setBackgroundColor(Ui.BG);
     scroll.addView(root);
-    shield = scroll;
     WindowManager.LayoutParams params =
         new WindowManager.LayoutParams(
             -1,
@@ -207,12 +219,16 @@ public class FocusAccessibilityService extends AccessibilityService {
                 | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.OPAQUE);
     try {
-      manager.addView(shield, params);
+      manager.addView(scroll, params);
       Ui.animateIn(root);
+      return scroll;
     } catch (Exception e) {
-      shield = null;
-      remaining = null;
+      return null;
     }
+  }
+
+  void removeOverlay(View overlay) {
+    if (overlay != null && overlay.isAttachedToWindow()) manager.removeViewImmediate(overlay);
   }
 
   void hideShield() {
@@ -229,11 +245,19 @@ public class FocusAccessibilityService extends AccessibilityService {
   @Override
   public void onInterrupt() {
     hideShield();
+    if (checkIn != null) checkIn.foregroundChanged("");
+  }
+
+  private void closeCheckIn() {
+    if (checkIn == null) return;
+    checkIn.close();
+    checkIn = null;
   }
 
   @Override
   public boolean onUnbind(Intent intent) {
     hideShield();
+    closeCheckIn();
     clearConnected();
     Store.changed(this);
     return super.onUnbind(intent);
@@ -242,6 +266,7 @@ public class FocusAccessibilityService extends AccessibilityService {
   @Override
   public void onDestroy() {
     hideShield();
+    closeCheckIn();
     clearConnected();
     super.onDestroy();
   }

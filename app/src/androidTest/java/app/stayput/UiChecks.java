@@ -92,9 +92,10 @@ final class UiChecks {
           for (int i = 0; i < screen.nav.getChildCount(); i++) {
             TextView label = (TextView) ((ViewGroup) screen.nav.getChildAt(i)).getChildAt(2);
             t.check(
-                label.getLayout().getLineBottom(label.getLineCount() - 1)
-                    <= label.getHeight() - label.getPaddingBottom(),
-                "Navigation label fits enlarged text: " + label.getText());
+                label.getLineCount() == 1
+                    && label.getPaint().measureText(label.getText().toString()) <= label.getWidth()
+                    && label.getLayout().getLineBottom(0) <= label.getHeight() - label.getPaddingBottom(),
+                "Navigation label fits on one line: " + label.getText());
           }
           screen.dial.setMinutes(30);
           AccessibilityNodeInfo dial = screen.dial.createAccessibilityNodeInfo();
@@ -130,13 +131,12 @@ final class UiChecks {
               "Duration presets have button semantics and 48dp touch targets");
           preset.performClick();
           t.check(screen.minutes == 30, "Tapping a duration preset updates the session");
-          View settings = screen.nav.getChildAt(3);
+          View settings = find(screen.nav, v -> "Settings".equals(v.getContentDescription()));
           settings.requestFocus();
           settings.performClick();
+          View selected = find(screen.nav, v -> "Settings".equals(v.getContentDescription()));
           t.check(
-              screen.tab == 3
-                  && screen.nav.getChildAt(3).isSelected()
-                  && screen.nav.getChildAt(3).hasFocus(),
+              screen.tab == 3 && selected.isSelected() && selected.hasFocus(),
               "Tab navigation retains focus and selected state");
           Switch floating =
               (Switch)

@@ -8,7 +8,7 @@ import java.util.*;
 import org.json.*;
 
 public final class Store {
-  private static android.content.SharedPreferences p(Context c) {
+  static SharedPreferences p(Context c) {
     return c.getSharedPreferences("stayput", Context.MODE_PRIVATE);
   }
 
@@ -46,6 +46,14 @@ public final class Store {
 
   public static void allowed(Context c, Set<String> apps) {
     p(c).edit().putStringSet("allowed", AutomaticApps.optional(c, apps)).apply();
+  }
+
+  static Set<String> checkInApps(Context c) {
+    return p(c).getStringSet("check_in_apps", Collections.emptySet());
+  }
+
+  static void checkInApps(Context c, Set<String> apps) {
+    p(c).edit().putStringSet("check_in_apps", new HashSet<>(apps)).apply();
   }
 
   public static boolean active(Context c) {

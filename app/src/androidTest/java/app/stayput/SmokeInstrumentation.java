@@ -28,7 +28,11 @@ public class SmokeInstrumentation extends Instrumentation {
   }
 
   void until(BooleanSupplier condition, String message) throws Exception {
-    long end = SystemClock.elapsedRealtime() + 60000;
+    until(condition, message, 60_000);
+  }
+
+  void until(BooleanSupplier condition, String message, long timeout) throws Exception {
+    long end = SystemClock.elapsedRealtime() + timeout;
     while (SystemClock.elapsedRealtime() < end) {
       if (condition.getAsBoolean()) {
         check(true, message);
@@ -302,6 +306,7 @@ public class SmokeInstrumentation extends Instrumentation {
       Store.begin(c, 5, set(), "Same-day test");
       Store.finish(c, true);
       check(Store.focusedDays(c).size() == 1, "Multiple sessions on one day still earn one floor");
+      CheckInChecks.run(this, screen);
       result.putString(
           "stream", report.toString() + "\nPASS: " + checks + " device integration checks\n");
       result.putInt("checks", checks);

@@ -8,6 +8,7 @@ import android.media.MediaPlayer;
 import android.os.*;
 import android.provider.Settings;
 import android.text.*;
+import android.util.TypedValue;
 import android.view.*;
 import android.widget.*;
 import java.time.*;
@@ -28,9 +29,12 @@ public class MainActivity extends Activity {
   boolean showingActive, blockingReady;
   final Handler handler = new Handler(Looper.getMainLooper());
   MediaPlayer preview;
+  private static final int CHECK_IN_TAB = 5;
+  private static final int CHECK_IN_SETUP = 6;
   private static final int DIAL_ID = View.generateViewId();
   private static final int[] NAV_IDS = {
-    View.generateViewId(), View.generateViewId(), View.generateViewId(), View.generateViewId()
+    View.generateViewId(), View.generateViewId(), View.generateViewId(), View.generateViewId(),
+    View.generateViewId()
   };
   private static final int[] PRESET_IDS = {
     View.generateViewId(), View.generateViewId(), View.generateViewId()
@@ -59,13 +63,18 @@ public class MainActivity extends Activity {
     super.onResume();
     isVisible = true;
     FocusAccessibilityService blockingService = FocusAccessibilityService.getConnected();
-    if (blockingService != null) blockingService.hideShield();
-    render();
-    if (Store.active(this))
-      try {
-        BlockService.start(this);
-      } catch (RuntimeException ignored) {
-      }
+    int checkInMinutes = blockingService == null ? 0 : blockingService.onStayputOpened();
+    if (checkInMinutes > 0 && !Store.active(this)) {
+      tab = 0;
+      startSession(checkInMinutes);
+    } else {
+      render();
+      if (Store.active(this))
+        try {
+          BlockService.start(this);
+        } catch (RuntimeException ignored) {
+        }
+    }
     handler.removeCallbacks(tick);
     handler.post(tick);
   }
@@ -93,7 +102,10 @@ public class MainActivity extends Activity {
 
   @Override
   public void onBackPressed() {
-    if (Store.active(this)) {
+    if (tab == CHECK_IN_SETUP) {
+      tab = CHECK_IN_TAB;
+      render();
+    } else if (Store.active(this)) {
       tab = 0;
       render();
       moveTaskToBack(true);
@@ -165,7 +177,11 @@ public class MainActivity extends Activity {
         settingsPage();
         break;
       case 4:
-        permissionPage();
+      case CHECK_IN_SETUP:
+        permissionPage(tab == CHECK_IN_SETUP);
+        break;
+      case CHECK_IN_TAB:
+        checkInPage();
         break;
       default:
         focusPage();
@@ -180,35 +196,40 @@ public class MainActivity extends Activity {
     }
     nav = Ui.row(this);
     Ui.pad(nav, 16, 8, 10);
-    String[] labels = {"Focus", "Routines", "Tower", "Settings"};
-    String[] icons = {"focus", "routines", "tower", "settings"};
-    for (int i = 0; i < 4; i++) {
-      final int index = i;
+    String[] labels = {"Focus", "Check-in", "Routines", "Tower", "Settings"};
+    String[] icons = {"focus", "clock", "routines", "tower", "settings"};
+    int[] destinations = {0, CHECK_IN_TAB, 1, 2, 3};
+    TextView[] navLabels = new TextView[destinations.length];
+    int selectedTab = tab == 4 ? 3 : tab == CHECK_IN_SETUP ? CHECK_IN_TAB : tab;
+    for (int i = 0; i < destinations.length; i++) {
+      int destination = destinations[i];
       LinearLayout item = Ui.col(this);
       item.setId(NAV_IDS[i]);
       item.setMinimumHeight(Ui.dp(this, 65));
       item.setGravity(Gravity.CENTER);
       Ui.pad(item, 0, 8, 8);
-      boolean selected = tab == i || (tab == 4 && i == 3);
+      boolean selected = selectedTab == destination;
       if (selected) Ui.surface(item, true);
       item.addView(Ui.icon(this, icons[i], selected ? Ui.RED : Ui.MUTED, 22));
       Ui.gap(item, 7);
       TextView label = Ui.bold(this, labels[i], 10, selected ? Ui.WHITE : Ui.MUTED);
       label.setGravity(Gravity.CENTER);
-      label.setMaxLines(2);
+      label.setMaxLines(1);
       label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-      item.addView(label);
+      item.addView(label, Ui.width(-1, -2, this));
+      navLabels[i] = label;
       Ui.action(item, labels[i]);
       item.setSelected(selected);
       item.setOnClickListener(
           v -> {
             stopPreview();
             AudioFeedback.play(this, "tap");
-            tab = index;
+            tab = destination;
             render();
           });
       nav.addView(item, new LinearLayout.LayoutParams(0, -2, 1));
     }
+    fitNavLabels(navLabels);
     root.addView(nav);
     setContentView(root);
     root.requestApplyInsets();
@@ -217,6 +238,23 @@ public class MainActivity extends Activity {
       if (restore != null) restore.requestFocus();
     }
     Ui.animateIn(content);
+  }
+
+  private void fitNavLabels(TextView[] labels) {
+    float preferredSize = labels[0].getTextSize();
+    float widest = 0;
+    for (TextView label : labels)
+      widest = Math.max(widest, label.getPaint().measureText(label.getText().toString()));
+    float requiredWidth = widest;
+    int gutter = Ui.dp(this, 4);
+    nav.addOnLayoutChangeListener(
+        (view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+          int available = (right - left - view.getPaddingLeft() - view.getPaddingRight())
+              / labels.length - gutter;
+          if (available <= 0) return;
+          float size = preferredSize * Math.min(1f, available / requiredWidth);
+          for (TextView label : labels) label.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
+        });
   }
 
   TextView title(String eyebrow, String heading, String subtitle) {
@@ -425,25 +463,26 @@ public class MainActivity extends Activity {
         .setNegativeButton("Not yet", null)
         .setPositiveButton(
             "Let's focus",
-            (d, w) -> {
-              if (!Permissions.ready(this)) {
-                tab = 4;
-                render();
-                return;
-              }
-              if (Store.begin(this, minutes, Store.allowed(this), "Focus session")) {
-                try {
-                  BlockService.start(this);
-                  AudioFeedback.play(this, "start");
-                  render();
-                } catch (RuntimeException e) {
-                  Store.finish(this, false);
-                  toast("Android couldn't start the session. Please try again.");
-                  render();
-                }
-              }
-            })
+            (d, w) -> startSession(minutes))
         .show();
+  }
+
+  private void startSession(int duration) {
+    if (!Permissions.ready(this)) {
+      tab = 4;
+      render();
+      return;
+    }
+    if (Store.begin(this, duration, Store.allowed(this), "Focus session")) {
+      try {
+        BlockService.start(this);
+        AudioFeedback.play(this, "start");
+      } catch (RuntimeException e) {
+        Store.finish(this, false);
+        toast("Android couldn't start the session. Please try again.");
+      }
+    }
+    render();
   }
 
   void activePage() {
@@ -994,6 +1033,64 @@ public class MainActivity extends Activity {
     parent.addView(c, p);
   }
 
+  private void checkInPage() {
+    title(
+        "BETWEEN SESSIONS",
+        getString(R.string.check_in_title),
+        "Choose the apps where you’d like a reminder to take a break.");
+    if (!blockingReady) {
+      settingRow(
+          card(),
+          "shield",
+          "Set up check-ins",
+          "Allow app blocking and display over other apps to start a cycle from the prompt.",
+          () -> {
+            tab = CHECK_IN_SETUP;
+            render();
+          });
+      Ui.gap(content, 18);
+    }
+    LinearLayout checkIn = card();
+    toggle(
+        checkIn,
+        "clock",
+        "Show check-ins",
+        "Ask after you spend time in a watched app.",
+        ScrollCheckIn.ENABLED,
+        false,
+        () -> true);
+    divider(checkIn);
+    Set<String> apps = Store.checkInApps(this);
+    settingRow(
+        checkIn,
+        "phone",
+        "Apps to watch",
+        apps.isEmpty()
+            ? "Choose apps for check-ins"
+            : getResources().getQuantityString(R.plurals.apps_found, apps.size(), apps.size()),
+        () ->
+            chooseApps(
+                apps,
+                false,
+                picked -> {
+                  Store.checkInApps(this, picked);
+                  render();
+                }));
+    divider(checkIn);
+    settingRow(checkIn, "clock", "Time before asking", checkInDelay(), this::chooseCheckInDelay);
+    Ui.gap(content, 24);
+    caption("WHEN STAYPUT ASKS");
+    TextView explanation =
+        Ui.text(
+            this,
+            "Keep going gives you another full interval. Start a cycle uses the duration on your"
+                + " Focus tab.",
+            13,
+            Ui.MUTED);
+    explanation.setLineSpacing(Ui.dp(this, 4), 1);
+    content.addView(explanation);
+  }
+
   void settingsPage() {
     title("MAKE IT YOURS", "A quieter phone.\nYour way.", null);
     LinearLayout permissions = card();
@@ -1006,7 +1103,7 @@ public class MainActivity extends Activity {
           tab = 4;
           render();
         });
-    Ui.gap(content, 18);
+    Ui.gap(content, 20);
     caption("DURING YOUR SESSION");
     LinearLayout session = card();
     toggle(
@@ -1093,7 +1190,7 @@ public class MainActivity extends Activity {
             new AlertDialog.Builder(this)
                 .setTitle("Local by design")
                 .setMessage(
-                    "Session history, routines, allowed apps and demo keys are stored only on this"
+                    "Session history, routines, app lists, check-in settings and demo keys are stored only on this"
                         + " device. Stayput never reads screen content. Android backup is"
                         + " disabled.\n\n"
                         + "Removing the app or clearing its storage deletes this data.")
@@ -1105,6 +1202,37 @@ public class MainActivity extends Activity {
     version.setGravity(Gravity.CENTER);
     version.setLineSpacing(Ui.dp(this, 8), 1);
     content.addView(version);
+  }
+
+  private String checkInDelay() {
+    return minuteLabel(Store.number(this, ScrollCheckIn.MINUTES, ScrollCheckIn.DEFAULT_MINUTES));
+  }
+
+  private String minuteLabel(int count) {
+    return getResources().getQuantityString(R.plurals.check_in_minutes, count, count);
+  }
+
+  private void chooseCheckInDelay() {
+    int[] options = {1, 5, 10, 15, 20, 30};
+    int current = Store.number(this, ScrollCheckIn.MINUTES, ScrollCheckIn.DEFAULT_MINUTES);
+    String[] labels = new String[options.length];
+    int selected = -1;
+    for (int i = 0; i < options.length; i++) {
+      labels[i] = minuteLabel(options[i]);
+      if (options[i] == current) selected = i;
+    }
+    new AlertDialog.Builder(this)
+        .setTitle("Time before asking")
+        .setSingleChoiceItems(
+            labels,
+            selected,
+            (dialog, which) -> {
+              Store.set(this, ScrollCheckIn.MINUTES, options[which]);
+              dialog.dismiss();
+              render();
+            })
+        .setNegativeButton("Cancel", null)
+        .show();
   }
 
   void settingRow(
@@ -1177,7 +1305,7 @@ public class MainActivity extends Activity {
     Ui.gap(parent, 14);
   }
 
-  void permissionPage() {
+  void permissionPage(boolean fromCheckIn) {
     boolean connected = FocusAccessibilityService.getConnected() != null;
     title(
         "A GOOD START",
@@ -1192,8 +1320,8 @@ public class MainActivity extends Activity {
         Permissions.accessibility(this) && !connected
             ? "Android enabled the service, but it is disconnected. Turn Stayput off and on in"
                 + " Accessibility settings to reconnect."
-            : "Detects only which app is open and covers apps outside your allowed list. Never"
-                + " reads screen content.",
+            : "Detects which app is open to block apps during focus and offer optional scroll"
+                + " check-ins. Never reads screen content.",
         () ->
             new AlertDialog.Builder(this)
                 .setTitle("Enable Stayput app blocking?")
@@ -1256,13 +1384,17 @@ public class MainActivity extends Activity {
     info.setLineSpacing(Ui.dp(this, 5), 1);
     content.addView(info);
     Ui.gap(content, 24);
+    String backLabel =
+        fromCheckIn
+            ? "Back to Check-in"
+            : Permissions.ready(this) ? "All set. Let's focus   →" : "Back to focus";
     content.addView(
         Ui.button(
             this,
-            Permissions.ready(this) ? "All set. Let's focus   →" : "Back to focus",
+            backLabel,
             true,
             () -> {
-              tab = 0;
+              tab = fromCheckIn ? CHECK_IN_TAB : 0;
               render();
             }),
         Ui.width(-1, -2, this));
@@ -1383,9 +1515,15 @@ public class MainActivity extends Activity {
   }
 
   void chooseApps(Set<String> initial, Consumer<Set<String>> save) {
-    Set<String> automatic = AutomaticApps.packages(this);
+    chooseApps(initial, true, save);
+  }
+
+  private void chooseApps(Set<String> initial, boolean essentials, Consumer<Set<String>> save) {
+    Set<String> defaults = AutomaticApps.packages(this);
+    Set<String> automatic = essentials ? defaults : Collections.emptySet();
     Set<String> original = new HashSet<>(initial);
     original.addAll(automatic);
+    if (!essentials) original.removeAll(defaults);
     Set<String> picked = new HashSet<>(original);
     Dialog dialog = new Dialog(this);
     dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -1398,15 +1536,17 @@ public class MainActivity extends Activity {
         16,
         12,
         keyboard -> introduction.setVisibility(keyboard ? View.GONE : View.VISIBLE));
-    TextView title = Ui.bold(this, "Pack your essentials", 23, Ui.WHITE);
+    TextView title = Ui.bold(this, essentials ? "Pack your essentials" : "Apps to watch", 23, Ui.WHITE);
     Ui.heading(title);
     introduction.addView(title);
     Ui.gap(introduction, 10);
     introduction.addView(
         Ui.text(
             this,
-            getString(R.string.automatic_apps_description)
-                + " Add any other apps you need during focus.",
+            essentials
+                ? getString(R.string.automatic_apps_description)
+                    + " Add any other apps you need during focus."
+                : "Pick the apps where you’d like a reminder to take a break.",
             12,
             Ui.MUTED));
     Ui.gap(introduction, 16);
@@ -1474,6 +1614,7 @@ public class MainActivity extends Activity {
               LinkedHashMap<String, AppChoice> unique = new LinkedHashMap<>();
               for (ResolveInfo info : available) {
                 if (info.activityInfo.packageName.equals(getPackageName())) continue;
+                if (!essentials && defaults.contains(info.activityInfo.packageName)) continue;
                 if (!unique.containsKey(info.activityInfo.packageName)) {
                   try {
                     AppChoice choice = new AppChoice(info, packages);
