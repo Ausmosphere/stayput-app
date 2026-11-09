@@ -83,7 +83,7 @@ Tap a screenshot to open it at full size.
 | **Automatic essentials** | Keep the device's default Phone, Messages, and keyboard apps available in manual sessions and routines. |
 | **Your own whitelist** | Search installed apps and choose additional essentials before a session starts. |
 | **Full-screen app blocking** | Get a reminder to return to your session when you open an app outside the allowed list. |
-| **Optional scroll check-ins** | After spending a set time in an app you choose, get a full-screen prompt to keep going or start a focus cycle. |
+| **Optional scroll check-ins** | Choose how firmly Stayput interrupts repeated swipes through a vertical feed in apps you watch. |
 | **Floating countdown** | Drag the timer to a screen edge and reopen Stayput with a tap. |
 | **A little more time** | Hold for three seconds to add 15 minutes, or activate the control to confirm an extension. |
 | **Recurring routines** | Schedule focus by name, local time, weekdays, duration, and a separate set of essential apps. |
@@ -99,8 +99,14 @@ They follow the device's current defaults, while your optional selections stay f
 Emergency calling remains available.
 
 Open the **Check-in** tab, turn on **Show check-ins**, pick the apps you want to watch, and choose how long Stayput should wait before asking.
-The default is 10 minutes in the same app, and leaving the app or locking the phone resets the timer.
-**Keep going** gives you another full interval, and **Start a cycle** uses the duration on your Focus tab.
+Stayput looks for repeated advances to the next item in a vertical feed that shows one item at a time.
+The default delay is 10 minutes from the first detected advance in a run, with pauses of up to a minute between advances.
+The pattern depends on scroll information that the watched app provides to Android.
+Swipe up or down on the alert or tap **Keep going** to dismiss it.
+Under **Check-in intensity**, choose **Gentle** (the default) for one alert per app visit, **Repeat** for another alert after a new interval of repeated swipes, or **Firm** for another alert on the next detected reel advance.
+**Time before asking** controls the first alert in all three modes and the interval between alerts in **Repeat**.
+Leaving the app or locking the phone starts a fresh check-in.
+**Start a cycle** uses the duration on your Focus tab.
 
 Early exits record the time you spent focusing but do not earn a tower floor.
 Multiple completed sessions on one day still earn one floor for that day.
@@ -141,7 +147,8 @@ This can happen after a force-stop.
 - **No account, analytics, or internet permission.**
   Stayput's focus features work offline.
 - **No screen content access.**
-  The accessibility service identifies foreground apps for blocking and check-ins without requesting screen text or recording your actions.
+  The accessibility service identifies foreground apps for blocking and uses scroll direction, item positions, and timing in watched apps for check-ins.
+  Stayput processes these signals on your device without requesting screen text or saving a scroll history.
 - **No contact, location, microphone, or storage permission requests.**
 - **You stay in control.**
   Android lets you revoke permissions, force-stop Stayput, or uninstall it.

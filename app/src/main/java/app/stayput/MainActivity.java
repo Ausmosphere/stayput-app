@@ -1037,7 +1037,7 @@ public class MainActivity extends Activity {
     title(
         "BETWEEN SESSIONS",
         getString(R.string.check_in_title),
-        "Choose the apps where you’d like a reminder to take a break.");
+        "Get a reminder to take a break when you keep swiping to the next clip.");
     if (!blockingReady) {
       settingRow(
           card(),
@@ -1055,7 +1055,7 @@ public class MainActivity extends Activity {
         checkIn,
         "clock",
         "Show check-ins",
-        "Ask after you spend time in a watched app.",
+        "Look for repeated swipes to the next item in watched apps.",
         ScrollCheckIn.ENABLED,
         false,
         () -> true);
@@ -1078,13 +1078,19 @@ public class MainActivity extends Activity {
                 }));
     divider(checkIn);
     settingRow(checkIn, "clock", "Time before asking", checkInDelay(), this::chooseCheckInDelay);
+    divider(checkIn);
+    settingRow(
+        checkIn,
+        "shield",
+        getString(R.string.check_in_intensity),
+        ScrollCheckIn.Intensity.load(this).label(this),
+        this::chooseCheckInIntensity);
     Ui.gap(content, 24);
     caption("WHEN STAYPUT ASKS");
     TextView explanation =
         Ui.text(
             this,
-            "Keep going gives you another full interval. Start a cycle uses the duration on your"
-                + " Focus tab.",
+            "Start a cycle uses the duration on your Focus tab.",
             13,
             Ui.MUTED);
     explanation.setLineSpacing(Ui.dp(this, 4), 1);
@@ -1232,6 +1238,24 @@ public class MainActivity extends Activity {
               render();
             })
         .setNegativeButton("Cancel", null)
+        .show();
+  }
+
+  private void chooseCheckInIntensity() {
+    ScrollCheckIn.Intensity[] options = ScrollCheckIn.Intensity.values();
+    String[] labels = new String[options.length];
+    for (int i = 0; i < options.length; i++) labels[i] = options[i].label(this);
+    new AlertDialog.Builder(this)
+        .setTitle(R.string.check_in_intensity)
+        .setSingleChoiceItems(
+            labels,
+            ScrollCheckIn.Intensity.load(this).ordinal(),
+            (dialog, which) -> {
+              options[which].save(this);
+              dialog.dismiss();
+              render();
+            })
+        .setNegativeButton(android.R.string.cancel, null)
         .show();
   }
 

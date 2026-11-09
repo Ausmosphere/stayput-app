@@ -26,8 +26,9 @@ done
 "$ADB" shell appops set app.stayput SYSTEM_ALERT_WINDOW allow
 API=$("$ADB" shell getprop ro.build.version.sdk | tr -d '\r')
 if [ "$API" -ge 33 ]; then "$ADB" shell pm grant app.stayput android.permission.POST_NOTIFICATIONS; fi
-"$ADB" shell settings put secure enabled_accessibility_services app.stayput/app.stayput.FocusAccessibilityService
-"$ADB" shell settings put secure accessibility_enabled 1
+# Instrumentation connects Stayput after Android starts its test process.
+"$ADB" shell settings delete secure enabled_accessibility_services
+"$ADB" shell settings put secure accessibility_enabled 0
 "$ADB" shell input keyevent KEYCODE_WAKEUP
 "$ADB" shell wm dismiss-keyguard
 "$ADB" shell am instrument -w app.stayput.test/app.stayput.SmokeInstrumentation > artifacts/device-tests.txt

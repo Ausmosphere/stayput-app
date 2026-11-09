@@ -12,17 +12,19 @@
     <string name="extend_holding">Keep holding…</string>
     <string name="extend_added">15 minutes added ✓</string>
     <string name="check_in_title">Scroll check-in</string>
+    <string name="check_in_intensity">Check-in intensity</string>
+    <string name="check_in_gentle">Gentle · Once per visit</string>
+    <string name="check_in_repeat">Repeat · After each interval</string>
+    <string name="check_in_firm">Firm · On the next reel</string>
     <string name="check_in_continue">Keep going</string>
+    <string name="check_in_swipe">Swipe up or down to dismiss</string>
     <string name="check_in_start">Start a %1$d-minute cycle</string>
     <string name="check_in_open_failed">Couldn’t open Stayput. Try again from the app.</string>
     <plurals name="check_in_minutes">
         <item quantity="one">%1$d minute</item>
         <item quantity="other">%1$d minutes</item>
     </plurals>
-    <plurals name="check_in_message">
-        <item quantity="one">You’ve been in %1$s for %2$d minute. Want to keep going or start a Stayput cycle?</item>
-        <item quantity="other">You’ve been in %1$s for %2$d minutes. Want to keep going or start a Stayput cycle?</item>
-    </plurals>
+    <string name="check_in_message">You’ve been swiping through %1$s. Ready for a break?</string>
     <plurals name="essential_apps_edit">
         <item quantity="one">%1$d essential app · Edit</item>
         <item quantity="other">%1$d essential apps · Edit</item>
@@ -31,5 +33,5 @@
         <item quantity="one">%1$d app</item>
         <item quantity="other">%1$d apps</item>
     </plurals>
-    <string name="accessibility_description">Stayput detects which app is open to block apps during focus sessions. If you turn on Scroll check-in, Stayput also times how long the apps you choose stay open between sessions and shows a prompt to take a break. Stayput processes this on your device. It does not read screen text, record actions, or send data anywhere.</string>
+    <string name="accessibility_description">Stayput detects which app is open to block apps during focus sessions. If you turn on Scroll check-in, Stayput uses scroll direction, item positions, and timing in the apps you choose to recognize repeated swipes between full-screen items. Stayput processes this on your device without reading screen text, saving a scroll history, or sending data anywhere.</string>
 </resources>

@@ -1,6 +1,7 @@
 package app.stayput;
 
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.*;
 import android.graphics.PixelFormat;
 import android.graphics.Typeface;
@@ -11,7 +12,7 @@ import android.widget.*;
 import java.lang.ref.WeakReference;
 import java.util.*;
 
-/** Only inspects foreground package names; never requests screen content. */
+/** Uses window and scroll metadata without requesting screen content. */
 public class FocusAccessibilityService extends AccessibilityService {
   private static volatile WeakReference<FocusAccessibilityService> connectedService =
       new WeakReference<>(null);
@@ -40,21 +41,35 @@ public class FocusAccessibilityService extends AccessibilityService {
 
   @Override
   public void onAccessibilityEvent(AccessibilityEvent e) {
-    if (e.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
     CharSequence name = e.getPackageName();
     if (name == null) return;
     String pkg = name.toString();
+    if (e.getEventType() == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
+      if (checkIn != null) checkIn.onScroll(pkg, e);
+      return;
+    }
+    if (e.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
     if (pkg.equals(getPackageName())
         || pkg.equals("com.android.systemui")
         || isKeyboardWindow(e, pkg)) return;
     lastPackage = pkg;
-    if (checkIn != null) checkIn.foregroundChanged(pkg);
+    if (checkIn != null) checkIn.foregroundChanged(pkg, e.getWindowId());
     if (!Store.active(this) || Store.remaining(this) <= 0) {
       hideShield();
       return;
     }
     if (isAllowed(pkg)) hideShield();
     else showShield();
+  }
+
+  void listenForScrolls(boolean enabled) {
+    AccessibilityServiceInfo info = getServiceInfo();
+    if (info == null) return;
+    int eventType = AccessibilityEvent.TYPE_VIEW_SCROLLED;
+    int events = enabled ? info.eventTypes | eventType : info.eventTypes & ~eventType;
+    if (events == info.eventTypes) return;
+    info.eventTypes = events;
+    setServiceInfo(info);
   }
 
   private boolean isKeyboardWindow(AccessibilityEvent event, String pkg) {
@@ -206,7 +221,10 @@ public class FocusAccessibilityService extends AccessibilityService {
   }
 
   View showOverlay(LinearLayout root) {
-    ScrollView scroll = new ScrollView(this);
+    return showOverlay(root, new ScrollView(this));
+  }
+
+  View showOverlay(LinearLayout root, ScrollView scroll) {
     scroll.setFillViewport(true);
     scroll.setBackgroundColor(Ui.BG);
     scroll.addView(root);
@@ -245,7 +263,7 @@ public class FocusAccessibilityService extends AccessibilityService {
   @Override
   public void onInterrupt() {
     hideShield();
-    if (checkIn != null) checkIn.foregroundChanged("");
+    if (checkIn != null) checkIn.foregroundChanged("", -1);
   }
 
   private void closeCheckIn() {
